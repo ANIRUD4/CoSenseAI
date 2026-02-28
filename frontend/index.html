@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IntelShare Demo</title>
+</head>
+<body>
+
+  <h2>IntelShare AI</h2>
+
+  <!-- Camera -->
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+
+  <br><br>
+
+  <!-- Controls -->
+  <button onclick="learn()">Learn</button>
+  <button onclick="infer()">Infer</button>
+  <div id="actions" style="margin-top:10px;"></div>
+
+  <div id="candidates"></div>
+
+  <p id="status">Status: Idle</p>
+  <pre id="output"></pre>
+
+  <div id="teachHint" style="margin-top:10px; font-weight:bold;"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

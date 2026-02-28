@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+numpy
+scikit-learn
+opencv-python
+mediapipe
+vosk
+ffmpeg-python
+soundfile
+boto3
+python-dotenv
