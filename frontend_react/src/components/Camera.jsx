@@ -1,10 +1,24 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { Camera as CameraIcon } from 'lucide-react';
 
-const Camera = ({ onCapture, isActive = true }) => {
+const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
+    const containerRef = useRef(null);
     const [stream, setStream] = useState(null);
+
+    // BBox Drawing State
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [startPos, setStartPos] = useState(null);
+    const [currentPos, setCurrentPos] = useState(null);
+    const [bbox, setBbox] = useState(null); // {x, y, w, h} in %
+
+    // Expose capture method to parents via ref
+    useImperativeHandle(ref, () => ({
+        capture: () => {
+            captureFrame();
+        }
+    }));
 
     useEffect(() => {
         startCamera();
@@ -30,51 +44,122 @@ const Camera = ({ onCapture, isActive = true }) => {
         }
     };
 
+    const getPos = (e) => {
+        const rect = containerRef.current.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: ((clientX - rect.left) / rect.width),
+            y: ((clientY - rect.top) / rect.height)
+        };
+    };
+
+    const handleStart = (e) => {
+        const pos = getPos(e);
+        setIsDrawing(true);
+        setStartPos(pos);
+        setCurrentPos(pos);
+        setBbox(null);
+    };
+
+    const handleMove = (e) => {
+        if (!isDrawing) return;
+        const pos = getPos(e);
+        setCurrentPos(pos);
+    };
+
+    const handleEnd = () => {
+        if (!isDrawing) return;
+        setIsDrawing(false);
+
+        // Finalize BBox
+        const x = Math.min(startPos.x, currentPos.x);
+        const y = Math.min(startPos.y, currentPos.y);
+        const w = Math.abs(startPos.x - currentPos.x);
+        const h = Math.abs(startPos.y - currentPos.y);
+
+        if (w > 0.05 && h > 0.05) { // Min size requirement
+            setBbox({ x, y, w, h });
+        } else {
+            setBbox(null);
+        }
+    };
+
     const captureFrame = () => {
         if (!videoRef.current || !canvasRef.current) return;
 
         const context = canvasRef.current.getContext('2d');
         context.drawImage(videoRef.current, 0, 0, 640, 480);
 
-        // Get base64 string
         const frame = canvasRef.current.toDataURL('image/jpeg');
-        // Remove prefix for backend compatibility if needed, but normally backend might need to strip "data:image/jpeg;base64,"
-        // backend/adapters.py -> get_embedding -> likely expects raw bytes or handles base64?
-        // Looking at backend code, it usually expects numpy array or similar. 
-        // We will send base64 and ensure backend handles it.
 
-        if (onCapture) onCapture(frame);
+        if (onCapture) {
+            // Pass frame and optional manual bbox
+            onCapture(frame, bbox);
+        }
     };
 
     return (
-        <div className="relative rounded-xl overflow-hidden shadow-lg bg-black aspect-video">
+        <div
+            ref={containerRef}
+            className="relative rounded-xl overflow-hidden shadow-lg bg-black aspect-video cursor-crosshair touch-none"
+            onMouseDown={handleStart}
+            onMouseMove={handleMove}
+            onMouseUp={handleEnd}
+            onTouchStart={handleStart}
+            onTouchMove={handleMove}
+            onTouchEnd={handleEnd}
+        >
             <video
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover pointer-events-none"
             />
             <canvas ref={canvasRef} width="640" height="480" className="hidden" />
 
-            {/* Center ROI Bounding Box Overlay */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] 
-                            border-2 border-white/60 border-dashed rounded-lg pointer-events-none z-10 
-                            flex flex-col items-center justify-center">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/50 backdrop-blur-md rounded text-[10px] text-white/90 font-medium tracking-wide">
-                    Place Object Here
+            {/* Manual BBox Overlay */}
+            {(isDrawing || bbox) && (
+                <div
+                    className="absolute border-2 border-accent border-dashed rounded-lg bg-accent/10 pointer-events-none z-10"
+                    style={{
+                        left: `${(isDrawing ? Math.min(startPos.x, currentPos.x) : bbox.x) * 100}%`,
+                        top: `${(isDrawing ? Math.min(startPos.y, currentPos.y) : bbox.y) * 100}%`,
+                        width: `${(isDrawing ? Math.abs(startPos.x - currentPos.x) : bbox.w) * 100}%`,
+                        height: `${(isDrawing ? Math.abs(startPos.y - currentPos.y) : bbox.h) * 100}%`
+                    }}
+                >
+                    <div className="absolute -top-7 left-0 px-2 py-1 bg-accent text-white text-[10px] rounded-t-md font-bold uppercase tracking-wider">
+                        Manual ROI
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Default ROI hint (if no manual box) */}
+            {!isDrawing && !bbox && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] 
+                                border-2 border-white/30 border-dashed rounded-lg pointer-events-none z-0 
+                                flex flex-col items-center justify-center">
+                    <div className="bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs text-white/80 font-medium">
+                        Draw Box or Tap Focus
+                    </div>
+                </div>
+            )}
 
             {isActive && (
                 <button
-                    onClick={captureFrame}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md p-4 rounded-full hover:bg-white/40 transition-all border border-white/50 z-20"
+                    title="capture-trigger"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Don't trigger startPos on click
+                        captureFrame();
+                    }}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md p-4 rounded-full hover:bg-white/40 transition-all border border-white/50 z-20 shadow-xl"
                 >
                     <CameraIcon className="w-8 h-8 text-white" />
                 </button>
             )}
         </div>
     );
-};
+});
 
 export default Camera;

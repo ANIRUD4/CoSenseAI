@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
 from backend.schemas.learning import LearningRequest
-from backend.storage.prototype_store import add_prototype
+from backend.storage.prototype_store import add_prototype, load_prototypes
+from backend.storage.collector import save_collected_data
+from backend.utils.diversity import select_diverse_prototypes
 from backend.adapters import get_embedding
 import base64
 import numpy as np
 import cv2
-
 
 
 def augment_image(image: np.ndarray) -> list[np.ndarray]:
@@ -68,10 +69,16 @@ def commit_learning(req: LearningRequest):
     if not label:
         raise HTTPException(status_code=400, detail="Label is required")
 
+    stored = 0
+    skipped = 0
+    mode = "single"
+    image_mode = False
+
     try:
 
         # Handle Base64 Image
         if req.image_base64:
+            image_mode = True
             try:
                 # Remove header if present (e.g., "data:image/jpeg;base64,")
                 if "," in req.image_base64:
@@ -83,35 +90,61 @@ def commit_learning(req: LearningRequest):
                 img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 if img is None:
                     raise ValueError("Failed to decode image from base64")
-                
-                # Generate embedding
-                # req.embedding = get_embedding(img)
-                
+
+                # ── Data Collector (Save raw for future detector training) ──
+                save_collected_data(img, label, req.roi_bbox)
+
                 # Few-Shot Enhancement: Augment Data
                 variations = augment_image(img)
                 generated_embeddings = []
-                
+
                 for var_img in variations:
                     try:
-                        emb = get_embedding(var_img, use_center_roi=True)
-                        generated_embeddings.append(emb)
+                        emb_result = get_embedding(
+                            var_img, 
+                            use_focus_roi=not bool(req.roi_bbox),
+                            manual_bbox=req.roi_bbox
+                        )
+                        generated_embeddings.append(emb_result["embedding"])
+
                     except Exception as embed_err:
                         print(f"Skipping augmented frame: {embed_err}")
 
                 if not generated_embeddings:
                     raise ValueError("Could not generate any embeddings from image")
-                
-                # Assign to correct field for storage
-                req.embeddings = generated_embeddings
-                req.embedding = None # clear single shot slot to force multi-path
+
+                # ── Diversity pre-filter on the augmented batch ──────────
+                existing_protos = load_prototypes().get(label, {}).get("prototypes", [])
+                existing_vectors = [p["vector"] for p in existing_protos]
+
+                filtered, skipped_aug = select_diverse_prototypes(
+                    candidates=generated_embeddings,
+                    existing_vectors=existing_vectors,
+                )
+                print(
+                    f"DIVERSITY (image batch): label='{label}' "
+                    f"generated={len(generated_embeddings)}, "
+                    f"accepted={len(filtered)}, skipped={skipped_aug}"
+                )
+
+                # Assign filtered embeddings for storage below
+                req.embeddings = filtered
+                req.embedding = None  # force multi-path
+                skipped = skipped_aug  # Track redundancy from the augment batch
 
             except Exception as e:
-                 raise HTTPException(status_code=400, detail=f"Image processing failed: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                print(f"ERROR in commit_learning image processing: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Image processing failed: {str(e)}")
 
         stored = 0
 
         # ✅ Multi-shot path (preferred)
-        if req.embeddings and isinstance(req.embeddings, list) and len(req.embeddings) >= 2:
+        if req.embeddings and isinstance(req.embeddings, list) and len(req.embeddings) >= 1:
+
+            stored = 0
+            skipped = 0
 
             for emb in req.embeddings:
 
@@ -124,10 +157,17 @@ def commit_learning(req: LearningRequest):
                 if not emb or len(emb) == 0:
                     raise ValueError("Empty embedding in embeddings list")
 
-                add_prototype(label, emb, req.action)
-                stored += 1
+                accepted = add_prototype(label, emb, req.action)
+                if accepted:
+                    stored += 1
+                else:
+                    skipped += 1
 
             mode = "multi"
+            print(
+                f"LEARN /commit: label='{label}' stored={stored}, "
+                f"skipped_as_redundant={skipped}"
+            )
 
         # ✅ Single-shot fallback
         elif req.embedding:
@@ -139,21 +179,60 @@ def commit_learning(req: LearningRequest):
             stored = 1
             mode = "single"
 
+        # ✅ Graceful redundancy fallback
+        elif image_mode:
+            stored = 0
+            mode = "multi"
+            print(f"LEARN /commit: label='{label}' stored=0 (All frames redundant)")
+
         else:
             raise HTTPException(
                 status_code=400,
                 detail="Provide 'embedding' (single) or 'embeddings' (multi-shot)"
             )
 
+        # ── Build wizard UX feedback ────────────────────────────────────────
+        all_protos = load_prototypes().get(label, {}).get("prototypes", [])
+        viewpoint_coverage = len(all_protos)
+        RECOMMENDED_MIN = 5
+
+        total_candidates = stored + skipped
+        redundancy_rate  = round(
+            (skipped / total_candidates * 100) if total_candidates > 0 else 0, 1
+        )
+
+        if redundancy_rate >= 80:
+            wizard_message = (
+                "All frames look nearly identical — please move or rotate the object "
+                "to capture different viewpoints."
+            )
+        elif viewpoint_coverage < RECOMMENDED_MIN:
+            wizard_message = (
+                f"Good start! Try different angles — "
+                f"{viewpoint_coverage}/{RECOMMENDED_MIN} diverse views captured."
+            )
+        else:
+            wizard_message = (
+                f"Capture complete. {viewpoint_coverage} diverse views stored for '{label}'."
+            )
+
         return {
             "status": "stored",
             "label": label,
             "prototypes_added": stored,
-            "mode": mode
+            "mode": mode,
+            # Wizard UX fields
+            "viewpoint_coverage": viewpoint_coverage,
+            "redundancy_rate": redundancy_rate,
+            "wizard_message": wizard_message,
         }
 
-    except HTTPException:
+    except HTTPException as he:
+        print(f"LEARN 400 (HTTPException): {he.detail}")
         raise
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        print(f"LEARN 400 (Unhandled): {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Internal Error: {str(e)}")

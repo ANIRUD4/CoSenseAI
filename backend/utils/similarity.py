@@ -9,7 +9,7 @@ def compute_similarity(a, b) -> float:
     b = np.array(b, dtype=np.float32)
 
     if a.shape != b.shape:
-        raise ValueError("Embedding dimension mismatch")
+        return 0.0
 
     denom = (np.linalg.norm(a) * np.linalg.norm(b))
     if denom == 0:

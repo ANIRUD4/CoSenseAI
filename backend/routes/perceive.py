@@ -24,10 +24,15 @@ def perceive_embedding(file: UploadFile = File(...)):
         if image is None:
             raise ValueError("Invalid image file")
 
-        # 4. Call Member 1's perception code
-        embedding = get_embedding(image)
+        # 4. Get embedding via focus-based ROI
+        emb_result = get_embedding(image, use_focus_roi=True)
 
-        return {"embedding": embedding}
+        return {
+            "embedding": emb_result["embedding"],
+            "roi_mode": emb_result.get("roi_mode"),
+            "focus_hint": emb_result.get("focus_hint"),
+        }
+
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

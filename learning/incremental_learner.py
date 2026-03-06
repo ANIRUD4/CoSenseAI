@@ -7,12 +7,21 @@ from learning.model_registry import load_model, save_model
 
 
 class IncrementalLearner:
+    # Set to True to enable the SGD classifier as an optional refinement layer.
+    # By default, core inference in infer.py uses prototype similarity.
+    ENABLE_SGD_REFINEMENT = False
+
     def __init__(self, embedding_dim: int):
         self.embedding_dim = embedding_dim
         self.model = load_model()
         self.seen_labels = set()
         self.buffer_X = []
         self.buffer_y = []
+
+        if not self.ENABLE_SGD_REFINEMENT:
+            self.model = None
+            self.is_initialized = False
+            return
 
         if self.model is None:
             self.model = SGDClassifier(
@@ -27,6 +36,9 @@ class IncrementalLearner:
             self.seen_labels = set(self.model.classes_)
 
     def learn(self, embedding: list, label: str):
+        if not self.ENABLE_SGD_REFINEMENT:
+            return
+
         X = np.array(embedding).reshape(1, -1)
         y = label
 
@@ -55,7 +67,7 @@ class IncrementalLearner:
         save_model(self.model)
 
     def predict(self, embedding: list):
-        if not self.is_initialized:
+        if not self.ENABLE_SGD_REFINEMENT or not self.is_initialized:
             return {
                 "label": "unknown",
                 "confidence": 0.0

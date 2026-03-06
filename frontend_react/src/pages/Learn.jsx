@@ -59,7 +59,7 @@ const Learn = () => {
         recognition.start();
     };
 
-    const handleCapture = async (frame) => {
+    const handleCapture = async (frame, bbox) => {
         setError(null);
         if (!label) {
             setError("Please enter a label first!");
@@ -69,27 +69,23 @@ const Learn = () => {
         setLoading(true);
         setSuccess(null);
 
-        // Prepare data directly for backend/routes/learn.py -> @router.post("/")
-        // It expects LearnRequest(label: str, image: str, action: str)
-        // We might need to check the pydantic model in backend/schemas/learn_schema.py or similar to be sure.
-        // Based on orchestrator.py learning_flow, it takes image_frame.
-        // Let's assume the API wrapper handles it or we send as JSON.
-
         try {
-            // The backend likely expects a JSON with image as base64 and label.
             await teachModel({
-                image_base64: frame, // Base64 string
+                image_base64: frame,
                 label: label,
-                action: action // Added action mapping
+                action: action,
+                roi_bbox: bbox // Pass the manual bounding box
             });
 
-            setSuccess(`Learned: ${label}`);
-            setLabel("");
+            setSuccess(`Learned: ${label}${bbox ? ' (Manual ROI)' : ''}`);
+            // Don't clear label immediately so user can take multiple shots of same object
+            // setLabel(""); 
             setAction("");
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error(err);
-            setError("Failed to learn object. Ensure backend is running.");
+            const detail = err.response?.data?.detail || "Unknown error";
+            setError(`Failed to learn: ${detail}`);
         } finally {
             setLoading(false);
         }

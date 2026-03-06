@@ -71,7 +71,9 @@ const Infer = () => {
             setPrediction(null); // Clear after correction
             alert("Thanks for the correction! I've updated my learning.");
         } catch (err) {
-            alert("Failed to update.");
+            console.error(err);
+            const detail = err.response?.data?.detail || "Connection failure or unknown error";
+            alert(`Failed to update: ${detail}`);
         }
     };
 
@@ -85,7 +87,11 @@ const Infer = () => {
                 confidence: prediction.candidates?.[0]?.confidence || 0.5
             });
             setPrediction(null);
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error(e);
+            const detail = e.response?.data?.detail || "Connection failure or unknown error";
+            alert(`Error: ${detail}`);
+        }
     }
 
     return (

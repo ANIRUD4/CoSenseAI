@@ -9,8 +9,18 @@ class VoiceListener:
     """
 
     def __init__(self, model_path="models/vosk-model"):
-        self.model = Model(model_path)
-        self.recognizer = KaldiRecognizer(self.model, 16000)
+        self.is_mocked = False
+        try:
+            self.model = Model(model_path)
+            self.recognizer = KaldiRecognizer(self.model, 16000)
+            print(f"VOSK: Model loaded successfully from {model_path}")
+        except Exception as e:
+            self.model = None
+            self.recognizer = None
+            self.is_mocked = True
+            print(f"WARNING: VOSK model failed to load from {model_path}: {e}")
+            print("VOSK: Running in MOCK mode.")
+            
         self.audio_queue = queue.Queue()
 
     def _callback(self, indata, frames, time, status):
@@ -20,6 +30,10 @@ class VoiceListener:
         """
         Listen for a short duration and return recognized text.
         """
+        if self.is_mocked:
+            print("VOSK (MOCK): simulating listening...")
+            return "mock transcription from listener"
+
         with sd.RawInputStream(
             samplerate=16000,
             blocksize=8000,
@@ -37,7 +51,9 @@ class VoiceListener:
         return final.get("text", "")
 
     def transcribe_bytes(self, audio_bytes: bytes) -> str:
-    
+        if self.is_mocked:
+            print(f"VOSK (MOCK): transcribing {len(audio_bytes)} bytes...")
+            return "mock transcription from bytes"
 
         print("VOSK: received audio bytes =", len(audio_bytes))
 

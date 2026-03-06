@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Dell\Desktop\IntelShareAI\scripts\test_metrics.py", line 24, in <module>
+    from backend.main import app
+  File "C:\Users\Dell\Desktop\IntelShareAI\backend\main.py", line 5, in <module>
+    from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics
+  File "C:\Users\Dell\Desktop\IntelShareAI\backend\routes\metrics.py", line 51, in <module>
+    \u8feb
+NameError: name '\u8feb' is not defined
+WARNING: VOSK model failed to load from models/vosk-model-small-en-us-0.15: Failed to create a model
+VOSK: Running in MOCK mode.
+WARNING: VOSK model failed to load from models/vosk-model-small-en-us-0.15: Failed to create a model
+VOSK: Running in MOCK mode.

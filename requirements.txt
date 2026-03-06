@@ -10,3 +10,10 @@ ffmpeg-python
 soundfile
 boto3
 python-dotenv
+# ── CLIP / OpenCLIP (Tier-1 embedding engine) ──────────────────────────────
+open-clip-torch
+# torch and torchvision are pulled automatically as dependencies of open-clip-torch.
+# On Raspberry Pi install the ARM-optimised wheel separately:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+Pillow
+matplotlib

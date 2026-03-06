@@ -11,6 +11,7 @@ class LearningRequest(BaseModel):
     embedding: Optional[List[float]] = None
     embeddings: Optional[List[List[float]]] = None
     image_base64: Optional[str] = None
+    roi_bbox: Optional[dict] = None  # {x, y, w, h} as percentages [0, 1]
 
 
 class LearningResponse(BaseModel):
