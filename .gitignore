@@ -38,3 +38,8 @@ marketplace_metadata/
 # Temporary files
 *.tmp
 temp/
+
+# Node / React
+node_modules/
+.expo/
+*.log
