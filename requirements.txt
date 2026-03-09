@@ -10,6 +10,7 @@ ffmpeg-python
 soundfile
 boto3
 python-dotenv
+httpx
 # ── CLIP / OpenCLIP (Tier-1 embedding engine) ──────────────────────────────
 open-clip-torch
 # torch and torchvision are pulled automatically as dependencies of open-clip-torch.

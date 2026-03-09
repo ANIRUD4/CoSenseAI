@@ -96,3 +96,17 @@ def get_engine_info() -> dict:
         "embedding_dim": EMBEDDING_DIM,
         "clip_available": engine.active_engine == "clip",
     }
+
+
+def get_embedding_from_image(image_frame: np.ndarray) -> list | None:
+    """
+    Convenience wrapper used by the LLM augmentation service.
+    Returns a plain List[float] embedding from any OpenCV BGR image,
+    or None if embedding fails.
+    """
+    try:
+        result = get_embedding(image_frame, use_focus_roi=False)
+        return result["embedding"]
+    except Exception as e:
+        print(f"get_embedding_from_image failed: {e}")
+        return None

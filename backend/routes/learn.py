@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from backend.schemas.learning import LearningRequest
 from backend.storage.prototype_store import add_prototype, load_prototypes
 from backend.storage.collector import save_collected_data
 from backend.utils.diversity import select_diverse_prototypes
 from backend.adapters import get_embedding
+from backend.llm_augment import augment_with_web_images
 import base64
 import numpy as np
 import cv2
@@ -53,14 +54,49 @@ def augment_image(image: np.ndarray) -> list[np.ndarray]:
 router = APIRouter(prefix="/learn", tags=["Learning"])
 
 
+def _run_llm_augmentation_bg(label: str, img: np.ndarray):
+    """
+    Background task: fetch real images from the web via LLM augmentation
+    and append their embeddings to the prototype store for the given label.
+    Users are unaware of this; they see only their 3-7 captured samples.
+    """
+    from backend.storage.prototype_store import add_prototype
+    from backend.utils.diversity import select_diverse_prototypes, MIN_DIVERSITY
+    try:
+        web_embeddings = augment_with_web_images(label, img)
+        if not web_embeddings:
+            return
+
+        # Diversity-filter before adding
+        existing_protos = load_prototypes().get(label, {}).get("prototypes", [])
+        existing_vectors = [p["vector"] for p in existing_protos]
+        accepted, skipped = select_diverse_prototypes(
+            candidates=web_embeddings,
+            existing_vectors=existing_vectors,
+            min_diversity=MIN_DIVERSITY,
+        )
+        added = 0
+        for emb in accepted:
+            if add_prototype(label, emb):
+                added += 1
+        print(
+            f"LLM_AUGMENT BG: label='{label}' web_added={added} skipped={skipped}"
+        )
+    except Exception as e:
+        import traceback
+        print(f"LLM_AUGMENT BG error for label='{label}': {e}")
+        traceback.print_exc()
+
+
 @router.post("/commit")
-def commit_learning(req: LearningRequest):
+def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
     """
     Supports:
     1) Single-shot learn  -> req.embedding
     2) Multi-shot learn   -> req.embeddings (preferred)
 
     Stores each embedding as a separate prototype.
+    After image-based learn, triggers LLM augmentation in the background.
     """
 
     # normalize label
@@ -90,6 +126,9 @@ def commit_learning(req: LearningRequest):
                 img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 if img is None:
                     raise ValueError("Failed to decode image from base64")
+
+                # ── Trigger LLM background augmentation ─────────────────────
+                background_tasks.add_task(_run_llm_augmentation_bg, label, img)
 
                 # ── Data Collector (Save raw for future detector training) ──
                 save_collected_data(img, label, req.roi_bbox)

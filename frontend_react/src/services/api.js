@@ -20,4 +20,8 @@ export const listSharedModels = () => api.get('/share/list');
 export const exportModel = (data) => api.post('/share/export', data);
 export const importModel = (modelId) => api.post(`/share/import/${modelId}`);
 
+// Actions
+export const executeAction = (data) => api.post('/act/', data);
+export const getActionMappings = () => api.get('/act/actions');
+
 export default api;
