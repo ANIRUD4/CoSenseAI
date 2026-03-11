@@ -1,0 +1,5 @@
+﻿Fetching token for query: coffee mug
+Got token: 4-305400085192270954027119461017500873763",safe_ddg=0,show_covid=0,perf_id="79e50592507dd007",parent_perf_id="5915ca815277b005",perf_sampled=0,ti,tig,y,y1,didNotLoadScripts=[],__DDG_BE_VERSION__="serp_20260310_195715_ET",__DDG_FE_CHAT_HASH__="fdcf411edea9322e6290";function handleScriptError(el) { if (el 
+Fetching images...
+i.js status code: 403
+i.js error preview: If this error persists, please let us know: ops@duckduckgo.com

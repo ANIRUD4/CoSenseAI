@@ -1,0 +1,17 @@
+﻿
+LLM_AUGMENT: Gemini 
+suggested query='Rubik's 
+Cube' for label='rubiks 
+cube'
+LLM_AUGMENT: Web image 
+fetch error: Expecting 
+value: line 1 column 1 
+(char 0)
+LLM_AUGMENT: Fetched 0 
+real images for 
+query='Rubik's Cube'
+LLM_AUGMENT: No web images 
+fetched for 'rubiks cube', 
+skipping augmentation.
+
+

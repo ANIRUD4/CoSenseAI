@@ -18,12 +18,12 @@ The user only sees the result (improved accuracy); all of this happens transpare
 import base64
 import io
 import os
-import time
 import httpx
 import cv2
 import numpy as np
-from typing import List, Optional
+from typing import List
 from PIL import Image
+from duckduckgo_search import DDGS
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -37,75 +37,93 @@ def _encode_image_for_llm(image: np.ndarray) -> str:
     return base64.b64encode(buffer).decode("utf-8")
 
 
-def _fetch_images_from_web(query: str, max_images: int = 10) -> List[np.ndarray]:
+def _fetch_images_from_wikipedia(query: str, max_images: int = 10) -> List[np.ndarray]:
     """
-    Fetches real images from the web using DuckDuckGo Image Search (no API key).
-    Returns a list of OpenCV-compatible BGR numpy arrays.
+    Fallback: Fetches images from Wikipedia API if DuckDuckGo rate limits.
     """
     images = []
+    url = "https://en.wikipedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "pageimages",
+        "generator": "search",
+        "gsrsearch": query,
+        "gsrlimit": max_images,
+        "pithumbsize": 800,
+    }
+    headers = {
+        "User-Agent": "IntelShareAI/1.0 (https://github.com/)"
+    }
+    
     try:
-        search_url = "https://duckduckgo.com/"
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-
-        # Step 1: obtain vqd token
         with httpx.Client(timeout=10, follow_redirects=True) as client:
-            r = client.post(
-                "https://duckduckgo.com/",
-                data={"q": query},
-                headers=headers,
-            )
-            vqd = None
-            for line in r.text.splitlines():
-                if "vqd=" in line:
-                    start = line.index("vqd=") + 4
-                    end = line.index("&", start) if "&" in line[start:] else len(line)
-                    vqd = line[start:end].strip("'\"")
-                    break
+            resp = client.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            pages = data.get("query", {}).get("pages", {})
+            
+            for page_id, page_info in pages.items():
+                if "thumbnail" in page_info:
+                    img_url = page_info["thumbnail"]["source"]
+                    try:
+                        img_resp = client.get(img_url, headers=headers)
+                        pil_img = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
+                        cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                        images.append(cv_img)
+                        if len(images) >= max_images:
+                            break
+                    except Exception as e:
+                        print(f"LLM_AUGMENT: Wikipedia image download error: {e}")
+                        continue
+    except Exception as e:
+        print(f"LLM_AUGMENT: Wikipedia API error: {e}")
+        
+    print(f"LLM_AUGMENT: Fetched {len(images)} images from Wikipedia for '{query}'")
+    return images
 
-            if not vqd:
-                print(f"LLM_AUGMENT: Could not extract vqd token for query='{query}'")
-                return images
 
-            # Step 2: fetch image results
-            params = {
-                "l": "us-en",
-                "o": "json",
-                "q": query,
-                "vqd": vqd,
-                "f": ",,,",
-                "p": "1",
-            }
-            img_search = client.get(
-                "https://duckduckgo.com/i.js",
-                params=params,
-                headers=headers,
-            )
-            results = img_search.json().get("results", [])
-
-            # Step 3: download up to max_images
-            for result in results[:max_images]:
+def _fetch_images_from_web(query: str, max_images: int = 10) -> List[np.ndarray]:
+    """
+    Fetches real images from the web using DuckDuckGo, with a fallback to Wikipedia.
+    """
+    images = []
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    try:
+        results = DDGS().images(
+            keywords=query,
+            region="us-en",
+            safesearch="off",
+            max_results=max_images,
+        )
+        with httpx.Client(timeout=8, follow_redirects=True) as client:
+            for result in results:
                 img_url = result.get("image")
                 if not img_url:
                     continue
                 try:
-                    resp = client.get(img_url, timeout=8, headers=headers)
+                    resp = client.get(img_url, headers=headers)
                     pil_img = Image.open(io.BytesIO(resp.content)).convert("RGB")
                     cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                     images.append(cv_img)
                 except Exception as e:
                     print(f"LLM_AUGMENT: Failed to download image from {img_url}: {e}")
                     continue
-
     except Exception as e:
-        print(f"LLM_AUGMENT: Web image fetch error: {e}")
+        print(f"LLM_AUGMENT: DDG Web image fetch error: {e}")
+        
+    # Fallback to Wikipedia if DuckDuckGo failed or returned 0 results due to Rate Limit
+    if not images:
+        print(f"LLM_AUGMENT: DuckDuckGo failed/returned 0 images. Falling back to Wikipedia...")
+        images = _fetch_images_from_wikipedia(query, max_images)
 
-    print(f"LLM_AUGMENT: Fetched {len(images)} real images for query='{query}'")
+    print(f"LLM_AUGMENT: Total fetched {len(images)} real images for query='{query}'")
     return images
 
 
@@ -123,7 +141,7 @@ def _ask_llm_for_keywords(label: str, image_b64: str) -> str:
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-1.5-flash-latest:generateContent?key={api_key}"
+        f"gemini-2.5-flash:generateContent?key={api_key}"
     )
     payload = {
         "contents": [
@@ -151,6 +169,10 @@ def _ask_llm_for_keywords(label: str, image_b64: str) -> str:
     try:
         with httpx.Client(timeout=15) as client:
             resp = client.post(url, json=payload)
+            if resp.status_code != 200:
+                with open("llm_debug.txt", "a") as f:
+                    f.write(f"LLM_AUGMENT: Gemini API failed with {resp.status_code}. Response: {resp.text}\n")
+                print(f"LLM_AUGMENT: Gemini API failed with {resp.status_code}. Response: {resp.text}")
             resp.raise_for_status()
             query = (
                 resp.json()
@@ -163,7 +185,7 @@ def _ask_llm_for_keywords(label: str, image_b64: str) -> str:
             print(f"LLM_AUGMENT: Gemini suggested query='{query}' for label='{label}'")
             return query or label
     except Exception as e:
-        print(f"LLM_AUGMENT: Gemini API error: {e} — falling back to label.")
+        print(f"LLM_AUGMENT: Gemini API exception: {e} — falling back to label.")
         return label
 
 

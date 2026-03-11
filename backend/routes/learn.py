@@ -275,3 +275,68 @@ def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
         print(f"LEARN 400 (Unhandled): {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Internal Error: {str(e)}")
+
+import os
+import glob
+from fastapi.responses import FileResponse
+
+@router.get("/images/{label}")
+def get_label_images(label: str):
+    """
+    Returns a list of image filenames associated with a label from the collector.
+    """
+    from backend.storage.collector import COLLECTOR_DIR
+    
+    label = label.strip().lower()
+    if not os.path.exists(COLLECTOR_DIR):
+        return {"images": []}
+        
+    # Find all images for this label
+    pattern = os.path.join(COLLECTOR_DIR, f"{label}_*.jpg")
+    files = glob.glob(pattern)
+    
+    # Return just the filenames or relative paths
+    filenames = [os.path.basename(f) for f in files]
+    return {"images": filenames}
+
+@router.get("/image/{filename}")
+def get_image(filename: str):
+    """
+    Serves a specific collected image.
+    """
+    from backend.storage.collector import COLLECTOR_DIR
+    
+    file_path = os.path.join(COLLECTOR_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+        
+    return FileResponse(file_path)
+
+@router.post("/augment/{label}")
+def trigger_manual_augmentation(label: str, background_tasks: BackgroundTasks):
+    """
+    Manually triggers LLM augmentation using one of the stored images for the label.
+    """
+    from backend.storage.collector import COLLECTOR_DIR
+    
+    label = label.strip().lower()
+    if not os.path.exists(COLLECTOR_DIR):
+        raise HTTPException(status_code=404, detail="No images found for label")
+        
+    pattern = os.path.join(COLLECTOR_DIR, f"{label}_*.jpg")
+    files = glob.glob(pattern)
+    
+    if not files:
+        raise HTTPException(status_code=404, detail="No images found for label")
+        
+    # Use the first available image as representative
+    representative_image_path = files[0]
+    img = cv2.imread(representative_image_path)
+    
+    if img is None:
+        raise HTTPException(status_code=500, detail="Failed to read representative image")
+        
+    # Trigger background task
+    background_tasks.add_task(_run_llm_augmentation_bg, label, img)
+    
+    return {"status": "started", "message": f"LLM augmentation started for '{label}'"}

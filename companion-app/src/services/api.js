@@ -8,7 +8,7 @@ import axios from 'axios';
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 // Change this to the IP of your Raspberry Pi on your local network:
-export const PI_BASE_URL = 'http://192.168.1.100:8000';
+export const PI_BASE_URL = 'http://192.168.220.41:8000';
 
 const api = axios.create({ baseURL: PI_BASE_URL, timeout: 15000 });
 
@@ -31,6 +31,13 @@ export const importModel = (modelId) => api.post(`/share/import/${modelId}`);
 
 /** GET /share/user/:userId/models — get models uploaded by a user */
 export const getUserModels = (userId) => api.get(`/share/user/${userId}/models`);
+
+// ── Memory / Knowledge ─────────────────────────────────────────────────────────
+/** GET /learn/images/:label — list collected images for a label */
+export const getLabelImages = (label) => api.get(`/learn/images/${label}`);
+
+/** POST /learn/augment/:label — trigger manual LLM augmentation */
+export const triggerAugmentation = (label) => api.post(`/learn/augment/${label}`);
 
 // ── Health ─────────────────────────────────────────────────────────────────────
 export const checkHealth = () => api.get('/');

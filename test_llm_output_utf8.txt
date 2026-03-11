@@ -1,0 +1,5 @@
+﻿Loading image data\collector\rubiks cube_1773077251397.jpg
+Sending request to /learn/commit...
+Response Status: 200
+Response Time: 8.31 seconds
+Response Body: {'status': 'stored', 'label': 'rubiks cube', 'prototypes_added': 0, 'mode': 'multi', 'viewpoint_coverage': 1, 'redundancy_rate': 100.0, 'wizard_message': 'All frames look nearly identical ù please move or rotate the object to capture different viewpoints.'}
