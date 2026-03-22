@@ -130,6 +130,7 @@ def add_prototype(
     label: str,
     embedding: List[float],
     action: str = None,
+    source: str = "user",
 ) -> bool:
     """
     Diversity-Gated Add with mean-vector refresh.
@@ -154,6 +155,17 @@ def add_prototype(
     protos = data[label]["prototypes"]
     old_mean = data[label].get("mean_vector")
     count = data[label].get("total_count", 0)
+
+    # ── Dimension Safety Check ─────────────────────────────────────────────
+    # Prevent mixed-engine contamination (e.g., CLIP 512-d vs MobileNet 1024-d)
+    if old_mean is not None:
+        if len(embedding) != len(old_mean):
+            print(
+                f"WARNING: Dimension mismatch for '{label}'. "
+                f"Existing: {len(old_mean)}, New: {len(embedding)}. "
+                f"Dropping new embedding to prevent store corruption."
+            )
+            return False
 
     # ── Incremental Mean Update (Instant Learning) ─────────────────────────
     # We update the mean even if the point is rejected from the diverse buffer
@@ -183,6 +195,7 @@ def add_prototype(
         "weight":       1.0,
         "uses":         1,
         "action":       action,
+        "source":       source,          # "user" | "boosted"
         "last_updated": time.time(),
     })
 

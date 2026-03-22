@@ -8,6 +8,7 @@ internal engine details.
 
 import cv2
 import numpy as np
+import os
 from perception.embedding_engine import EmbeddingEngine, CLIP_EMBEDDING_DIM
 from perception.preprocessor import Preprocessor
 
@@ -19,7 +20,8 @@ _PREPROCESSOR: Preprocessor | None = None
 def _get_engine() -> EmbeddingEngine:
     global _ENGINE
     if _ENGINE is None:
-        _ENGINE = EmbeddingEngine()
+        pref = os.getenv("PERCEPTION_ENGINE_PREFERENCE")
+        _ENGINE = EmbeddingEngine(engine_preference=pref)
     return _ENGINE
 
 
@@ -30,10 +32,10 @@ def _get_preprocessor() -> Preprocessor:
     return _PREPROCESSOR
 
 
-# Convenience constant: dimension of the active embedding.
-# Callers (e.g. learning/interface.py) should import this instead of
-# hard-coding a number so that changing the engine propagates automatically.
-EMBEDDING_DIM: int = CLIP_EMBEDDING_DIM   # 512 for CLIP ViT-B/32
+# Dimension query
+def get_embedding_dim() -> int:
+    """Return the dimension of the currently active embedding engine."""
+    return _get_engine().embedding_dim
 
 
 def get_embedding(
@@ -78,13 +80,14 @@ def get_embedding(
         manual_bbox=manual_bbox,
     )
 
-    embedding = engine.get_embedding(result["frame"], normalize=True)
+    engine_result = engine.get_embedding(result["frame"], normalize=True)
 
     return {
-        "embedding":  list(embedding),
+        "embedding":  engine_result["vector"],
         "focus_hint": result.get("focus_hint"),
         "roi_mode":   result.get("roi_mode", "full_frame"),
-        "engine":     engine.active_engine,
+        "engine":     engine_result["engine"],
+        "dim":        engine_result["dim"],
     }
 
 
@@ -93,7 +96,7 @@ def get_engine_info() -> dict:
     engine = _get_engine()
     return {
         "engine":        engine.active_engine,
-        "embedding_dim": EMBEDDING_DIM,
+        "embedding_dim": engine.embedding_dim,
         "clip_available": engine.active_engine == "clip",
     }
 

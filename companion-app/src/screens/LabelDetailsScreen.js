@@ -3,7 +3,7 @@ import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     ActivityIndicator, Image, Alert, ScrollView
 } from 'react-native';
-import { getLabelImages, PI_BASE_URL, triggerAugmentation } from '../services/api';
+import { getLabelImages, PI_BASE_URL, triggerBoost, getBoostStatus, syncLabelCentroid } from '../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -25,7 +25,9 @@ export default function LabelDetailsScreen({ route, navigation }) {
     const [images, setImages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [augmenting, setAugmenting] = useState(false);
+    const [boostProgress, setBoostProgress] = useState(null); // { progress, total, message, status }
     const [error, setError] = useState(null);
+    const _pollRef = React.useRef(null);
 
     useEffect(() => {
         navigation.setOptions({ 
@@ -47,26 +49,51 @@ export default function LabelDetailsScreen({ route, navigation }) {
         }
     };
 
-    const handleIncreaseAccuracy = async () => {
+    const handleBoostAccuracy = async () => {
         setAugmenting(true);
+        setBoostProgress({ progress: 0, total: 0, message: 'Starting boost pipeline...', status: 'pending' });
         try {
-            await triggerAugmentation(label);
-            Alert.alert(
-                'Uplink Established',
-                'Deep learning sequence initiated. Analyzing external datasets to reinforce neural pathways.',
-                [{ text: 'Acknowledged' }]
-            );
+            const res = await triggerBoost(label, 150);
+            const jobId = res.data.job_id;
+
+            // Poll /boost/status every 2 seconds
+            _pollRef.current = setInterval(async () => {
+                try {
+                    const statusRes = await getBoostStatus(jobId);
+                    const job = statusRes.data;
+                    setBoostProgress(job);
+
+                    if (job.status === 'done' || job.status === 'failed') {
+                        clearInterval(_pollRef.current);
+                        setAugmenting(false);
+                        if (job.status === 'done') {
+                            // Sync to confirm
+                            await syncLabelCentroid(label);
+                            Alert.alert(
+                                '⚡ Boost Complete',
+                                job.message,
+                                [{ text: 'Acknowledged' }]
+                            );
+                        } else {
+                            Alert.alert('Transmission Error', job.message);
+                        }
+                        setBoostProgress(null);
+                    }
+                } catch (pollErr) {
+                    // Ignore transient polling errors
+                }
+            }, 2000);
         } catch (e) {
-            Alert.alert('Transmission Error', 'Failed to trigger augmentation sequence. Verify uplink.');
-        } finally {
             setAugmenting(false);
+            setBoostProgress(null);
+            Alert.alert('Transmission Error', 'Failed to start boost sequence. Verify uplink.');
         }
     };
 
     const renderItem = ({ item }) => (
         <View style={styles.imageContainer}>
             <Image
-                source={{ uri: `${PI_BASE_URL}/learn/image/${item}` }}
+                source={{ uri: `${PI_BASE_URL}/learn/image/${encodeURIComponent(item)}?t=${Date.now()}` }}
                 style={styles.image}
             />
             <LinearGradient
@@ -108,7 +135,7 @@ export default function LabelDetailsScreen({ route, navigation }) {
                     {images.length > 0 && (
                         <TouchableOpacity
                             activeOpacity={0.8}
-                            onPress={handleIncreaseAccuracy}
+                            onPress={handleBoostAccuracy}
                             disabled={augmenting}
                         >
                             <LinearGradient 
@@ -117,7 +144,14 @@ export default function LabelDetailsScreen({ route, navigation }) {
                                 start={{x: 0, y: 0}} end={{x: 1, y: 1}}
                             >
                                 {augmenting ? (
-                                    <ActivityIndicator size="small" color={COLORS.primary} />
+                                    <View style={styles.progressContainer}>
+                                        <ActivityIndicator size="small" color={COLORS.primary} />
+                                        {boostProgress && boostProgress.total > 0 ? (
+                                            <Text style={styles.progressText}>
+                                                {Math.round((boostProgress.progress / boostProgress.total) * 100)}%
+                                            </Text>
+                                        ) : null}
+                                    </View>
                                 ) : (
                                     <>
                                         <Feather name="cpu" size={16} color={COLORS.textDark} style={{ marginRight: 6 }} />
@@ -262,4 +296,26 @@ const styles = StyleSheet.create({
     errorText: { fontFamily: 'Outfit_600SemiBold', color: '#EF4444', textAlign: 'center', marginBottom: 20, fontSize: 15, lineHeight: 22 },
     retryBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.cardBorder, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
     retryText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 14 },
+    progressContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    progressText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.primary, fontSize: 13 },
+    progressCard: {
+        marginHorizontal: 16, marginBottom: 12,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 240, 255, 0.2)',
+        backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    },
+    progressMsg: {
+        fontFamily: 'Outfit_400Regular', color: COLORS.textMuted, fontSize: 13, marginBottom: 10, lineHeight: 18,
+    },
+    progressTrack: {
+        height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%', borderRadius: 3, backgroundColor: COLORS.primary,
+    },
+    progressPercent: {
+        fontFamily: 'Outfit_600SemiBold', color: COLORS.primary, fontSize: 12, marginTop: 6, textAlign: 'right',
+    },
 });

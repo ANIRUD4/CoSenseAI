@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics
+from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics, boost
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file
@@ -27,6 +27,7 @@ app.include_router(infer.router)
 app.include_router(confirm.router)
 app.include_router(export_import.router)
 app.include_router(metrics.router)
+app.include_router(boost.router)
 
 @app.get("/")
 def health():

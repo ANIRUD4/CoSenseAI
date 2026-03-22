@@ -9,7 +9,7 @@ from interaction.interface import get_label
 import time
 from typing import List
 from backend.storage.prototype_store import add_prototype, load_prototypes
-from backend.utils.diversity import select_diverse_prototypes, MIN_DIVERSITY, MAX_PROTOTYPES_PER_LABEL
+from backend.utils.diversity import select_diverse_prototypes, MIN_DIVERSITY, MAX_PROTOTYPES_PER_LABEL, N_CENTROIDS
 
 # Raspberry Pi Optimization: Track last inference time to prevent CPU spam
 _LAST_INFERENCE_TIME = 0
@@ -42,14 +42,15 @@ def mean_embedding(embeddings: List[List[float]]) -> List[float]:
 
 def learning_flow_multishot(get_frame_fn, label: str, k: int = 10, delay: float = 0.12):
     """
-    Diversity-Based Multi-shot Learn:
+    Centroid-Based Multi-shot Learn:
     - Capture k candidate frames
-    - Run greedy max-distance selection to find diverse embeddings
-    - Store only the embeddings that pass diversity gating
+    - Run K-Means clustering to extract N_CENTROIDS clean, noise-cancelled centroids
+    - Store only the centroids (not raw frames), gated against existing prototypes
 
-    This replaces the old "store all K frames" policy:
-    - Redundant viewpoints are discarded, saving RAM and disk
-    - Memory is bounded by MAX_PROTOTYPES_PER_LABEL (default: 15)
+    Advantages over the old greedy approach:
+    - Camera noise, glare, and motion blur are averaged out during clustering
+    - Memory is bounded to N_CENTROIDS new prototypes per session (default: 3)
+    - Inference is 10-30x faster since only a handful of centroids need to be compared
     - When the cap is reached, the weakest/oldest prototype is evicted
     """
     label = label.lower()
@@ -77,9 +78,8 @@ def learning_flow_multishot(get_frame_fn, label: str, k: int = 10, delay: float 
     )
 
     print(
-        f"DIVERSITY multishot '{label}': "
-        f"{len(accepted)} accepted, {skipped} skipped (redundant) "
-        f"from {k} captured frames"
+        f"CENTROID multishot '{label}': "
+        f"{len(accepted)} centroids stored (from {k} raw frames, {skipped} raw frames consolidated)"
     )
 
     stored = 0

@@ -8,9 +8,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Font from 'expo-font';
 import { Outfit_400Regular, Outfit_600SemiBold, Outfit_800ExtraBold } from '@expo-google-fonts/outfit';
 import { BlurView } from 'expo-blur';
@@ -74,52 +75,59 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer theme={{ colors: { background: '#050814' } }}>
-      <StatusBar style="light" />
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 },
-          headerTransparent: true,
-          headerTintColor: '#F9FAFB',
-          headerTitleStyle: { fontFamily: 'Outfit_800ExtraBold', fontSize: 26, letterSpacing: 0.5 },
-          tabBarStyle: { position: 'absolute', borderTopWidth: 0, elevation: 0, height: 85 },
-          tabBarBackground: () => (
-            <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
-          ),
-          tabBarActiveTintColor: '#00F0FF',
-          tabBarInactiveTintColor: '#4B5563',
-          tabBarLabelStyle: { fontFamily: 'Outfit_600SemiBold', fontSize: 11, marginBottom: 10 },
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer 
+        theme={{ 
+          ...DarkTheme, 
+          colors: { ...DarkTheme.colors, background: '#050814' } 
         }}
       >
-        <Tab.Screen
-          name="ActionsStack"
-          component={ActionStackScreen}
-          options={{
-            headerShown: false,
-            tabBarLabel: 'Memory',
-            tabBarIcon: ({ focused }) => iconBadge('cpu', focused),
+        <StatusBar style="light" />
+        <Tab.Navigator
+          screenOptions={{
+            headerStyle: { backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 },
+            headerTransparent: true,
+            headerTintColor: '#F9FAFB',
+            headerTitleStyle: { fontFamily: 'Outfit_800ExtraBold', fontSize: 26, letterSpacing: 0.5 },
+            tabBarStyle: { position: 'absolute', borderTopWidth: 0, elevation: 0, height: 85 },
+            tabBarBackground: () => (
+              <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
+            ),
+            tabBarActiveTintColor: '#00F0FF',
+            tabBarInactiveTintColor: '#4B5563',
+            tabBarLabelStyle: { fontFamily: 'Outfit_600SemiBold', fontSize: 11, marginBottom: 10 },
           }}
-        />
-        <Tab.Screen
-          name="Marketplace"
-          component={MarketplaceScreen}
-          options={{
-            title: 'Nexus',
-            tabBarLabel: 'Nexus',
-            tabBarIcon: ({ focused }) => iconBadge('globe', focused),
-          }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            title: 'System',
-            tabBarLabel: 'System',
-            tabBarIcon: ({ focused }) => iconBadge('sliders', focused),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+        >
+          <Tab.Screen
+            name="ActionsStack"
+            component={ActionStackScreen}
+            options={{
+              headerShown: false,
+              tabBarLabel: 'Memory',
+              tabBarIcon: ({ focused }) => iconBadge('cpu', focused),
+            }}
+          />
+          <Tab.Screen
+            name="Marketplace"
+            component={MarketplaceScreen}
+            options={{
+              title: 'Nexus',
+              tabBarLabel: 'Nexus',
+              tabBarIcon: ({ focused }) => iconBadge('globe', focused),
+            }}
+          />
+          <Tab.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              title: 'System',
+              tabBarLabel: 'System',
+              tabBarIcon: ({ focused }) => iconBadge('sliders', focused),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 

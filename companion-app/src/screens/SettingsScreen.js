@@ -32,7 +32,7 @@ const COLORS = {
 const IP_KEY = 'pi_ip';
 
 export default function SettingsScreen() {
-    const [ip, setIp] = useState('192.168.1.100');
+    const [ip, setIp] = useState('192.168.220.40');
     const [status, setStatus] = useState(null);   // null | 'ok' | 'fail'
     const [testing, setTesting] = useState(false);
     

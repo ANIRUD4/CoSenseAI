@@ -54,7 +54,7 @@ def augment_image(image: np.ndarray) -> list[np.ndarray]:
 router = APIRouter(prefix="/learn", tags=["Learning"])
 
 
-def _run_llm_augmentation_bg(label: str, img: np.ndarray):
+def _run_llm_augmentation_bg(label: str, img: np.ndarray, max_web_images: int = 10):
     """
     Background task: fetch real images from the web via LLM augmentation
     and append their embeddings to the prototype store for the given label.
@@ -63,7 +63,7 @@ def _run_llm_augmentation_bg(label: str, img: np.ndarray):
     from backend.storage.prototype_store import add_prototype
     from backend.utils.diversity import select_diverse_prototypes, MIN_DIVERSITY
     try:
-        web_embeddings = augment_with_web_images(label, img)
+        web_embeddings = augment_with_web_images(label, img, max_web_images=max_web_images)
         if not web_embeddings:
             return
 
@@ -77,7 +77,7 @@ def _run_llm_augmentation_bg(label: str, img: np.ndarray):
         )
         added = 0
         for emb in accepted:
-            if add_prototype(label, emb):
+            if add_prototype(label, emb, source="boosted"):
                 added += 1
         print(
             f"LLM_AUGMENT BG: label='{label}' web_added={added} skipped={skipped}"
@@ -299,18 +299,105 @@ def get_label_images(label: str):
     filenames = [os.path.basename(f) for f in files]
     return {"images": filenames}
 
+
+@router.get("/sync/{label}")
+def sync_label(label: str):
+    """
+    Returns the current mean_vector (512-d centroid) and prototype stats for a label.
+    Called by the companion app after a Boost job completes to confirm sync.
+    The centroid alone is enough for inference — the Pi does not need all prototypes.
+    """
+    label = label.strip().lower()
+    data = load_prototypes()
+    label_data = data.get(label)
+
+    if not label_data:
+        raise HTTPException(status_code=404, detail=f"Label '{label}' not found in prototype store.")
+
+    protos = label_data.get("prototypes", [])
+    mean_vector = label_data.get("mean_vector")
+
+    user_count    = sum(1 for p in protos if p.get("source", "user") == "user")
+    boosted_count = sum(1 for p in protos if p.get("source") == "boosted")
+
+    return {
+        "label":         label,
+        "mean_vector":   mean_vector,
+        "total_count":   label_data.get("total_count", len(protos)),
+        "buffer_count":  len(protos),
+        "user_count":    user_count,
+        "boosted_count": boosted_count,
+        "has_mean":      mean_vector is not None,
+    }
+
 @router.get("/image/{filename}")
 def get_image(filename: str):
     """
-    Serves a specific collected image.
+    Serves a specific collected image, with its ROI bounding box drawn if available.
     """
     from backend.storage.collector import COLLECTOR_DIR
+    import json
+    from fastapi.responses import Response
     
     file_path = os.path.join(COLLECTOR_DIR, filename)
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image not found")
+        return Response(status_code=404)
         
-    return FileResponse(file_path)
+    json_path = os.path.join(COLLECTOR_DIR, filename.split("?")[0].replace(".jpg", ".json"))
+    
+    try:
+        if not os.path.exists(json_path):
+            print(f"ROI: No json found for {filename}")
+            return FileResponse(file_path)
+            
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+            
+        bbox = data.get("bbox")
+        if not bbox:
+            print(f"ROI: No bbox in json for {filename}")
+            return FileResponse(file_path)
+
+        print(f"ROI: Drawing box for {filename}: {bbox}")
+            
+        img = cv2.imread(file_path)
+        if img is None:
+            return FileResponse(file_path)
+            
+        # Draw bounding box (bbox coordinates are normalized 0.0 - 1.0)
+        h, w, _ = img.shape
+        start_x = int(bbox["x"] * w)
+        start_y = int(bbox["y"] * h)
+        box_w = int(bbox["w"] * w)
+        box_h = int(bbox["h"] * h)
+        
+        # Draw a neon blue/cyan box with 4px thickness
+        cv2.rectangle(img, (start_x, start_y), (start_x + box_w, start_y + box_h), (255, 240, 0), 4)
+        
+        # Also draw the label text above the box
+        label_text = data.get("label", "Object")
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1.0
+        thickness = 2
+        text_size = cv2.getTextSize(label_text, font, font_scale, thickness)[0]
+        text_x = start_x
+        text_y = max(start_y - 10, 0)
+        
+        # Draw text background
+        cv2.rectangle(img, (text_x, text_y - text_size[1]), (text_x + text_size[0], text_y + 5), (255, 240, 0), -1)
+        # Draw text foreground (dark)
+        cv2.putText(img, label_text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness)
+
+        # Encode image to memory buffer
+        success, encoded_img = cv2.imencode('.jpg', img)
+        if not success:
+            return FileResponse(file_path)
+            
+        return Response(content=encoded_img.tobytes(), media_type="image/jpeg")
+
+    except Exception as e:
+        print(f"Error drawing ROI for {filename}: {e}")
+        return FileResponse(file_path)
 
 @router.post("/augment/{label}")
 def trigger_manual_augmentation(label: str, background_tasks: BackgroundTasks):
@@ -336,7 +423,7 @@ def trigger_manual_augmentation(label: str, background_tasks: BackgroundTasks):
     if img is None:
         raise HTTPException(status_code=500, detail="Failed to read representative image")
         
-    # Trigger background task
-    background_tasks.add_task(_run_llm_augmentation_bg, label, img)
+    # Trigger background task with a larger fetch parameter
+    background_tasks.add_task(_run_llm_augmentation_bg, label, img, 50)
     
     return {"status": "started", "message": f"LLM augmentation started for '{label}'"}

@@ -8,9 +8,10 @@ import axios from 'axios';
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 // Change this to the IP of your Raspberry Pi on your local network:
-export const PI_BASE_URL = 'http://192.168.220.41:8000';
+export const PI_BASE_URL = 'http://192.168.220.40:8000';
 
 const api = axios.create({ baseURL: PI_BASE_URL, timeout: 15000 });
+const boostApi = axios.create({ baseURL: PI_BASE_URL, timeout: 600000 }); // 10-min timeout for boosts
 
 // ── Action Mapping ─────────────────────────────────────────────────────────────
 /** GET /act/actions — list all label→action mappings */
@@ -36,8 +37,19 @@ export const getUserModels = (userId) => api.get(`/share/user/${userId}/models`)
 /** GET /learn/images/:label — list collected images for a label */
 export const getLabelImages = (label) => api.get(`/learn/images/${label}`);
 
-/** POST /learn/augment/:label — trigger manual LLM augmentation */
+/** POST /learn/augment/:label — trigger manual LLM augmentation (legacy) */
 export const triggerAugmentation = (label) => api.post(`/learn/augment/${label}`);
+
+// ── Boost Accuracy (Large Dataset) ────────────────────────────────────────────
+/** POST /boost/start — start a large dataset boost job for a label */
+export const triggerBoost = (label, maxImages = 150) =>
+    boostApi.post('/boost/start', { label, max_images: maxImages });
+
+/** GET /boost/status/:jobId — poll progress of a running boost job */
+export const getBoostStatus = (jobId) => api.get(`/boost/status/${jobId}`);
+
+/** GET /learn/sync/:label — fetch updated centroid + stats after boost */
+export const syncLabelCentroid = (label) => api.get(`/learn/sync/${label}`);
 
 // ── Health ─────────────────────────────────────────────────────────────────────
 export const checkHealth = () => api.get('/');

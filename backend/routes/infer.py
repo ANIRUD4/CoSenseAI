@@ -378,32 +378,52 @@ def infer_object(req: InferRequest):
     # =====================================================================
     smoother.reset()
 
-    # If TFLite gave a high-confidence result, promote it to the top
+    # =====================================================================
+    # 9️⃣  Confident — Semantic Ensembling (CLIP + TFLite)
+    # =====================================================================
+    smoother.reset()
+
     final_label = top_label
     final_engine = _engine_used
+    
+    # If TFLite gave a result, we perform a weighted ensemble:
+    # final_weight = (w_clip * clip_sim + w_tflite * tflite_prob)
     if tflite_result is not None:
-        final_label  = tflite_result["label"]
-        final_engine = "tflite_classifier"
-        print(
-            f"HYBRID: TFLite override → '{final_label}' "
-            f"(conf={tflite_result['confidence']:.3f})"
-        )
+        tflite_label = tflite_result["label"]
+        tflite_conf  = tflite_result["confidence"]
+        
+        # Scenario A: Engines agree on the label
+        if tflite_label == top_label:
+            print(f"ENSEMBLE: Engines agree on '{top_label}'. Boosting confidence.")
+            # Boost the top1 confidence because both engines agree
+            candidates[0]["confidence"] = min(1.0, candidates[0]["confidence"] * 1.15)
+        
+        # Scenario B: TFLite is VERY confident but disagrees with CLIP
+        elif tflite_conf > 0.85:
+            print(f"ENSEMBLE: TFLite extremely confident in '{tflite_label}'. Overriding CLIP.")
+            final_label = tflite_label
+            final_engine = "tflite_classifier_ensemble"
+            
+        # Scenario C: Engines disagree, but TFLite is only moderately confident
+        else:
+            print(f"ENSEMBLE: Engines disagree ('{top_label}' vs '{tflite_label}'). Sticking with CLIP (semantic).")
 
     return {
         "message":    "I think it might be one of these. Please confirm.",
         "candidates": candidates[:5],
         "decision":   "confident",
 
-        "top1":              top1,
+        "top1":              candidates[0]["confidence"],
         "top2":              top2,
         "gap":               gap,
         "uncertainty_signal": uncertainty_signal,
         "ask_confirm":       ask_confirm,
         "smoothed_label":    smoothed_label,
+        "root_label":        top_label, # original CLIP top label
         "embedding":         req.embedding,
 
         # Hybrid result metadata
         "final_label":       final_label,
         "embedding_engine":  final_engine,
-        "tflite_override":   tflite_result is not None,
+        "tflite_override":   tflite_result is not None and final_label != top_label,
     }

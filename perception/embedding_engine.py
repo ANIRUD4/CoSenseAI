@@ -2,9 +2,10 @@
 perception/embedding_engine.py
 
 Three-tier embedding engine:
-  Tier 1 (CLIP/OpenCLIP)   – ViT-B/32, 512-d L2-normalised output.
-                              Best accuracy, especially for few-shot learning.
-  Tier 2 (TFLite MobileNet) – existing quantised model if CLIP unavailable.
+  Tier 1 (MobileCLIP-S1)    – ultra-lightweight CLIP variant optimised for edge
+                               CPUs.  512-d L2-normalised output.  3× faster than
+                               ViT-B/32 at comparable accuracy.
+  Tier 2 (TFLite MobileNet) – existing quantised model if MobileCLIP unavailable.
   Tier 3 (Simple CV)        – histogram + edge features; last resort.
 """
 
@@ -13,8 +14,23 @@ import numpy as np
 import os
 import platform
 
-# ---------- CLIP embedding dimension (ViT-B/32) ----------
+try:
+    import torch
+    import open_clip
+except ImportError:
+    pass
+
+# ---------- CLIP embedding dimension (MobileCLIP-S1 / ViT-B/32) ----------
+# Both models output 512-d vectors in their default configuration.
 CLIP_EMBEDDING_DIM = 512
+
+# Model config for preferred edge CLIP variant.
+# MobileCLIP-S1: smallest/fastest of the MobileCLIP family, still strong accuracy.
+# Fallback: ViT-B-32 / openai (heavier but universally available).
+_MOBILE_CLIP_MODEL  = "MobileCLIP-S1"
+_MOBILE_CLIP_PRETRAINED = "datacompdr"
+_FALLBACK_CLIP_MODEL = "ViT-B-32"
+_FALLBACK_CLIP_PRETRAINED = "openai"
 
 class EmbeddingEngine:
     """
@@ -25,9 +41,14 @@ class EmbeddingEngine:
     Last:     Simple CV features → 66-d vector
     """
 
-    def __init__(self, model_path: str = "models/mobilenet_v3_small_quant.tflite"):
+    def __init__(self, model_path: str = "models/mobilenet_v3_small_quant.tflite", engine_preference: str = None):
+        """
+        engine_preference: 'clip', 'tflite', or 'simple'. If provided, it will try that engine first.
+        """
         self.model_path = model_path
-        self._active_engine = "simple"   # updated as tiers initialise
+        self._engine_preference = engine_preference
+        self._active_engine = "simple"
+        self._clip_model_name = None  # track which CLIP model loaded
 
         # ── Tier 1: CLIP / OpenCLIP ────────────────────────────────────────
         self._clip_model   = None
@@ -35,23 +56,49 @@ class EmbeddingEngine:
         self._clip_device  = "cpu"
 
         try:
-            import torch
-            import open_clip
+            if self._engine_preference is None or self._engine_preference == "clip":
+                # ── Attempt 1: MobileCLIP-S1 (preferred, edge-optimised) ────────────
+                loaded = False
+                try:
+                    model, _, preprocess = open_clip.create_model_and_transforms(
+                        _MOBILE_CLIP_MODEL, pretrained=_MOBILE_CLIP_PRETRAINED
+                    )
+                    model.eval()
+                    self._clip_model         = model
+                    self._clip_preprocess    = preprocess
+                    self._clip_device        = "cuda" if torch.cuda.is_available() else "cpu"
+                    self._clip_model.to(self._clip_device)
+                    self._active_engine      = "clip"
+                    self._clip_model_name    = _MOBILE_CLIP_MODEL
+                    loaded = True
+                    print(
+                        f"INFO: MobileCLIP-S1 embedding engine loaded ({CLIP_EMBEDDING_DIM}-d) "
+                        f"on {self._clip_device}"
+                    )
+                except Exception as e_mobile:
+                    print(f"INFO: MobileCLIP-S1 unavailable ({e_mobile}). Trying ViT-B/32 fallback.")
 
-            model, _, preprocess = open_clip.create_model_and_transforms(
-                "ViT-B-32", pretrained="openai"
-            )
-            model.eval()
-
-            self._clip_model      = model
-            self._clip_preprocess = preprocess
-            self._clip_device     = "cuda" if torch.cuda.is_available() else "cpu"
-            self._clip_model.to(self._clip_device)
-            self._active_engine   = "clip"
-            print(
-                f"INFO: CLIP embedding engine loaded (ViT-B/32, {CLIP_EMBEDDING_DIM}-d) "
-                f"on {self._clip_device}"
-            )
+                # ── Attempt 2: ViT-B/32 (heavier but universal CLIP fallback) ───
+                if not loaded:
+                    try:
+                        model, _, preprocess = open_clip.create_model_and_transforms(
+                            _FALLBACK_CLIP_MODEL, pretrained=_FALLBACK_CLIP_PRETRAINED
+                        )
+                        model.eval()
+                        self._clip_model         = model
+                        self._clip_preprocess    = preprocess
+                        self._clip_device        = "cuda" if torch.cuda.is_available() else "cpu"
+                        self._clip_model.to(self._clip_device)
+                        self._active_engine      = "clip"
+                        self._clip_model_name    = _FALLBACK_CLIP_MODEL
+                        print(
+                            f"INFO: ViT-B/32 CLIP embedding engine loaded ({CLIP_EMBEDDING_DIM}-d) "
+                            f"on {self._clip_device}"
+                        )
+                    except Exception as e_vit:
+                        print(f"INFO: ViT-B/32 also unavailable ({e_vit}).")
+            else:
+                print(f"INFO: CLIP skipped due to engine_preference={self._engine_preference}")
         except Exception as e:
             print(f"INFO: CLIP not available ({e}). Trying TFLite fallback.")
 
@@ -77,7 +124,11 @@ class EmbeddingEngine:
 
             if tflite is not None and os.path.exists(self.model_path):
                 try:
-                    self._interpreter = tflite.Interpreter(model_path=self.model_path)
+                    # Pi 5 Optimization: Use 4 threads for faster inference
+                    self._interpreter = tflite.Interpreter(
+                        model_path=self.model_path,
+                        num_threads=4
+                    )
                     self._interpreter.allocate_tensors()
                     self._input_details  = self._interpreter.get_input_details()
                     self._output_details = self._interpreter.get_output_details()
@@ -115,20 +166,17 @@ class EmbeddingEngine:
         """String identifier for the active tier: 'clip', 'tflite', or 'simple'."""
         return self._active_engine
 
-    def get_embedding(self, image: np.ndarray, normalize: bool = True) -> list:
+    def get_embedding(self, image: np.ndarray, normalize: bool = True) -> dict:
         """
         Convert a preprocessed image (224×224×3, float32 in [0,1]) to
         a fixed-length embedding vector.
 
-        Parameters
-        ----------
-        image     : np.ndarray — preprocessed frame from Preprocessor
-        normalize : bool       — L2-normalise the output (recommended for
-                                 cosine similarity; always done for CLIP)
-
         Returns
         -------
-        list[float]
+        dict:
+            "vector": list[float]
+            "engine": str
+            "dim":    int
         """
         vec = self._get_raw_embedding(image)
         if normalize:
@@ -136,8 +184,13 @@ class EmbeddingEngine:
             norm = np.linalg.norm(arr)
             if norm > 0:
                 arr = arr / norm
-            return arr.tolist()
-        return vec
+            vec = arr.tolist()
+        
+        return {
+            "vector": vec,
+            "engine": self._active_engine,
+            "dim":    len(vec)
+        }
 
     # ── Private helpers ────────────────────────────────────────────────────
 

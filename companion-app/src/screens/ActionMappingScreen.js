@@ -155,11 +155,11 @@ export default function ActionMappingScreen({ navigation }) {
                     />
                 }
                 ListHeaderComponent={
-                    filtered.length > 0 && (
+                    filtered.length > 0 ? (
                         <Text style={styles.countText}>
                             {filtered.length} pattern{filtered.length !== 1 ? 's' : ''} index | {filtered.filter(m => m.has_action).length} active
                         </Text>
-                    )
+                    ) : null
                 }
             />
         </View>

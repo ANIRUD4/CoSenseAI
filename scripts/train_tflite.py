@@ -89,11 +89,16 @@ def train(classes):
     train_data, rest    = data.split(0.8)
     val_data, test_data = rest.split(0.5)
 
-    print("Training EfficientNet-Lite0 image classifier …")
+    print("Training EfficientNet-Lite2 image classifier (Pi 5 Optimized) …")
+    from tflite_model_maker import model_spec
+    lite2_spec = model_spec.get('efficientnet_lite2')
+
     model = image_classifier.create(
         train_data,
+        model_spec=lite2_spec,
         validation_data=val_data,
-        epochs=10,
+        epochs=15, # Increased epochs slightly for the larger model
+        batch_size=16
     )
 
     print("\nEvaluating on test set:")

@@ -1,6 +1,20 @@
 import cv2
 import numpy as np
 
+# ── rembg (U²-Net background removal) ─────────────────────────────────────────
+# Graceful fallback: if rembg is not installed, saliency masking is skipped.
+_REMBG_AVAILABLE = False
+_rembg_session = None
+try:
+    from rembg import remove as _rembg_remove, new_session as _rembg_new_session
+    _REMBG_AVAILABLE = True
+    # Load the u2netp model (lightweight variant, ~4MB) at import time for speed.
+    # Alternatives: 'u2net' (larger, more accurate) or 'silueta' (fastest).
+    _rembg_session = _rembg_new_session("u2netp")
+    print("INFO: rembg U²-Net background removal loaded (u2netp).")
+except Exception as _e:
+    print(f"INFO: rembg not available ({_e}). Background masking will use MOG2 fallback.")
+
 # ── Focus-ROI tuning knobs ─────────────────────────────────────────────────
 # A tile's Laplacian variance below this means the frame is too blurry to
 # trust any focus crop.  Falls back to center crop + user hint.
@@ -51,6 +65,11 @@ class Preprocessor:
         self.back_sub = cv2.createBackgroundSubtractorMOG2(
             history=50, varThreshold=16, detectShadows=True
         )
+        # ROI Stability Tracker (Pi 5 Optimization)
+        self.tracker = None
+        self.tracking_bbox = None # (x, y, w, h)
+        self.frames_since_last_focus = 0
+        self.MAX_TRACKING_FRAMES = 30 # Re-scan focus every 30 frames
 
     # ── Focus-based ROI ───────────────────────────────────────────────────────
 
@@ -104,7 +123,7 @@ class Preprocessor:
                 f"Frame is blurry (sharpness={best_var:.0f}). "
                 "Please hold the camera steady and place the object in the centre."
             )
-            return center_crop, hint
+            return center_crop, hint, None
 
         # Expand the tile centre to a larger crop
         half = max(
@@ -121,7 +140,9 @@ class Preprocessor:
             f"FOCUS ROI: sharpest tile var={best_var:.1f} "
             f"centre=({best_cx},{best_cy}) crop=({x0c},{y0c},{x1c},{y1c})"
         )
-        return frame[y0c:y1c, x0c:x1c], None   # None → no hint needed
+        
+        # Return the crop coordinates so we can initialize the tracker
+        return frame[y0c:y1c, x0c:x1c], None, (x0c, y0c, x1c - x0c, y1c - y0c)
 
     # ── Edge-Density-based ROI ────────────────────────────────────────────────
 
@@ -166,10 +187,50 @@ class Preprocessor:
         print(f"EDGE ROI: detected bounds=({x0},{y0},{x1},{y1})")
         return frame[y0:y1, x0:x1]
 
-    # ── Motion/saliency-based ROI ─────────────────────────────────────────────
+    # ── Neural background removal (rembg / U²-Net saliency) ─────────────────
 
-    def _saliency_crop(self, frame, margin: float = 0.15):
+    def _rembg_isolate(self, frame: np.ndarray) -> np.ndarray:
         """
+        Remove the background using rembg's U²-Net model, returning a BGR
+        image with the background blacked out.
+
+        Unlike the old MOG2 approach (which required motion), this works on
+        *still* objects, making it ideal for the few-shot learning flow.
+
+        Falls back to the MOG2 saliency crop if rembg is unavailable.
+        """
+        if _REMBG_AVAILABLE and _rembg_session is not None:
+            try:
+                from PIL import Image as _PILImage
+                import io as _io
+
+                # rembg expects a PIL Image or raw bytes; convert from BGR numpy.
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_input = _PILImage.fromarray(frame_rgb)
+
+                # Remove background — output is RGBA PIL image.
+                output_pil = _rembg_remove(pil_input, session=_rembg_session)
+
+                # Composite onto a pure black background using the alpha channel.
+                bg = _PILImage.new("RGBA", output_pil.size, (0, 0, 0, 255))
+                composited = _PILImage.alpha_composite(bg, output_pil)
+
+                # Convert back to BGR numpy.
+                result_rgb = np.array(composited.convert("RGB"))
+                result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
+
+                print("SALIENCY: rembg U²-Net background removed successfully.")
+                return result_bgr
+
+            except Exception as e:
+                print(f"WARNING: rembg inference failed ({e}). Falling back to MOG2.")
+
+        # ── MOG2 fallback (motion-based) ──────────────────────────────────────
+        return self._saliency_mog2_crop(frame)
+
+    def _saliency_mog2_crop(self, frame: np.ndarray, margin: float = 0.15) -> np.ndarray:
+        """
+        Legacy MOG2 motion-based fallback for when rembg is unavailable.
         Find the largest moving contour via background subtraction and
         return a cropped sub-image around it.
         Falls back to the full frame if no meaningful contour is found.
@@ -196,7 +257,7 @@ class Preprocessor:
         y1 = min(fh, y + h + my)
         y0 = max(0,  y - my)
 
-        print(f"SALIENCY ROI: crop=({x0},{y0},{x1},{y1}) on ({fw}x{fh}) frame")
+        print(f"SALIENCY MOG2: crop=({x0},{y0},{x1},{y1}) on ({fw}x{fh}) frame")
         return frame[y0:y1, x0:x1]
 
     # ── Center crop helper ────────────────────────────────────────────────────
@@ -268,26 +329,59 @@ class Preprocessor:
             roi_mode = "manual"
             
         elif use_focus_roi:
-            processed_frame, focus_hint = self._focus_crop(processed_frame)
-            roi_mode = "center_fallback" if focus_hint else "focus"
+            # ── ROI Stability Logic (Pi 5) ──
+            need_new_focus = (
+                self.tracker is None or 
+                self.frames_since_last_focus >= self.MAX_TRACKING_FRAMES
+            )
             
-            # 🔥 Laptop Webcam Optimization: If focus ROI failed due to blur, 
-            # try Edge-Density ROI before giving up and asking user to steady the camera.
-            if focus_hint:
-                print(f"FOCUS ROI failed (blur), attempting EDGE ROI fallback...")
-                edge_frame = self._edge_density_crop(frame) # use original frame
-                # If edge frame is different from center-fallback, use it
-                processed_frame = edge_frame
-                roi_mode = "edge_fallback"
-                focus_hint = None # Suppression of hint if edge ROI works
+            if not need_new_focus:
+                success, bbox = self.tracker.update(frame)
+                if success:
+                    x, y, w, h = [int(v) for v in bbox]
+                    # Ensure bbox is within frame
+                    fh, fw = frame.shape[:2]
+                    x0, y0 = max(0, x), max(0, y)
+                    x1, y1 = min(fw, x + w), min(fh, y + h)
+                    
+                    if (x1 - x0) > 20 and (y1 - y0) > 20:
+                        processed_frame = frame[y0:y1, x0:x1]
+                        roi_mode = "tracked_focus"
+                        self.frames_since_last_focus += 1
+                    else:
+                        need_new_focus = True # Bbox too small or invalid
+                else:
+                    need_new_focus = True # Tracker lost object
+
+            if need_new_focus:
+                # Reset tracker and find focus again
+                self.tracker = None 
+                processed_frame, focus_hint, bbox_coords = self._focus_crop(processed_frame)
+                roi_mode = "center_fallback" if focus_hint else "focus"
+                
+                if not focus_hint and bbox_coords:
+                    # Initialize KCF tracker for subsequent frames
+                    self.tracker = cv2.TrackerKCF_create()
+                    self.tracker.init(frame, bbox_coords)
+                    self.frames_since_last_focus = 0
+                    roi_mode = "focus_init_tracking"
+
+                # 🔥 Laptop Webcam Optimization: If focus ROI failed due to blur, 
+                # try Edge-Density ROI before giving up.
+                if focus_hint:
+                    print(f"FOCUS ROI failed (blur), attempting EDGE ROI fallback...")
+                    edge_frame = self._edge_density_crop(frame) 
+                    processed_frame = edge_frame
+                    roi_mode = "edge_fallback"
+                    focus_hint = None 
         
         elif use_edge_roi:
             processed_frame = self._edge_density_crop(processed_frame)
             roi_mode = "edge_density"
 
         elif use_saliency_roi:
-            processed_frame = self._saliency_crop(processed_frame)
-            roi_mode = "saliency"
+            processed_frame = self._rembg_isolate(processed_frame)
+            roi_mode = "saliency_rembg" if _REMBG_AVAILABLE else "saliency_mog2"
 
         elif use_center_roi:
             processed_frame = self._center_crop(processed_frame, ratio=roi_ratio)
@@ -296,9 +390,12 @@ class Preprocessor:
         resized = cv2.resize(processed_frame, self.target_size)
 
         if isolate_object:
-            mask = self.back_sub.apply(resized)
-            mask = cv2.dilate(mask, None, iterations=2)
-            resized = cv2.bitwise_and(resized, resized, mask=mask)
+            # ── Use rembg for high-quality static-object isolation ────────────
+            # In learning flows the object is typically held still, so MOG2
+            # (motion-based) would produce an empty mask.  rembg works on
+            # single frames without any temporal context.
+            isolated = self._rembg_isolate(resized)
+            resized = isolated
 
         return {
             "frame": resized.astype(np.float32) / 255.0,

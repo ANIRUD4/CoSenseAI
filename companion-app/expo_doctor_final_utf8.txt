@@ -1,0 +1,37 @@
+﻿Running 17 checks on your project...
+16/17 checks passed. 1 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+Γ£û Check that packages match versions required by installed Expo SDK
+
+ΓÜá∩╕Å Minor version mismatches
+package                       expected  found   
+react-native-gesture-handler  ~2.28.0   2.23.1  
+
+
+
+1 package out of date.
+Advice:
+Use 'npx expo install --check' to review and upgrade your dependencies.
+To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
+
+node.exe : 1 check 
+failed, indicating 
+possible issues with 
+the project.
+At C:\Program Files\nod
+ejs\npx.ps1:29 char:3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (1 check faile   
+ d,...th the projec    
+t.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 

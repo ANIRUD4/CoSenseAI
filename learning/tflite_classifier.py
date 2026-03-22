@@ -77,7 +77,11 @@ class TFLiteClassifier:
             return
 
         try:
-            self._interpreter = tflite.Interpreter(model_path=self.model_path)
+            # Pi 5 Optimization: Use 4 threads for faster inference
+            self._interpreter = tflite.Interpreter(
+                model_path=self.model_path,
+                num_threads=4
+            )
             self._interpreter.allocate_tensors()
             self._input_details  = self._interpreter.get_input_details()
             self._output_details = self._interpreter.get_output_details()
