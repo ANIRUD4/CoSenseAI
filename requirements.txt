@@ -27,4 +27,9 @@ matplotlib
 # rembg uses U²-Net ONNX models to accurately remove static backgrounds.
 # onnxruntime is the CPU inference backend for rembg on edge devices.
 rembg
-onnxruntime
+onnxruntime
+# ── Hardware Feedback (Raspberry Pi 5) ─────────────────────────────────────
+# gpiozero handles the high-level logic for LEDs and Buzzer.
+# lgpio is the modern backend required for Raspberry Pi 5 (replaces RPi.GPIO).
+gpiozero
+lgpio

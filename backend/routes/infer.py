@@ -198,7 +198,7 @@ def infer_object(req: InferRequest):
                     best_sim = max(0.0, best_sim - penalty)
                     print(
                         f"HARD-NEG penalty for '{label}': "
-                        f"neg_sim={best_neg_sim:.4f} → penalised sim={best_sim:.4f}"
+                        f"neg_sim={best_neg_sim:.4f} -> penalised sim={best_sim:.4f}"
                     )
 
         labels.append(label)
