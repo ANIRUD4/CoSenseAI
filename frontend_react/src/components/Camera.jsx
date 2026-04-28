@@ -86,10 +86,49 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     };
 
     const captureFrame = () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current || !containerRef.current) return;
+
+        const cw = containerRef.current.clientWidth;
+        const ch = containerRef.current.clientHeight;
+
+        if (cw === 0 || ch === 0) return;
+
+        canvasRef.current.width = cw;
+        canvasRef.current.height = ch;
 
         const context = canvasRef.current.getContext('2d');
-        context.drawImage(videoRef.current, 0, 0, 640, 480);
+        
+        const vw = videoRef.current.videoWidth;
+        const vh = videoRef.current.videoHeight;
+        
+        if (!vw || !vh) {
+            // Fallback if video isn't ready
+            context.drawImage(videoRef.current, 0, 0, cw, ch);
+            const frame = canvasRef.current.toDataURL('image/jpeg');
+            if (onCapture) {
+                onCapture(frame, bbox);
+            }
+            return;
+        }
+
+        // Emulate object-cover so bbox matches the captured image perfectly
+        const cr = cw / ch;
+        const vr = vw / vh;
+
+        let sWidth = vw;
+        let sHeight = vh;
+        let sx = 0;
+        let sy = 0;
+
+        if (cr > vr) {
+            sHeight = vw / cr;
+            sy = (vh - sHeight) / 2;
+        } else {
+            sWidth = vh * cr;
+            sx = (vw - sWidth) / 2;
+        }
+
+        context.drawImage(videoRef.current, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
 
         const frame = canvasRef.current.toDataURL('image/jpeg');
 

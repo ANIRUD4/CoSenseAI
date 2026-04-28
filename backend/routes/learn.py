@@ -6,6 +6,7 @@ from backend.storage.collector import save_collected_data
 from backend.utils.diversity import select_diverse_prototypes
 from backend.adapters import get_embedding
 from backend.llm_augment import augment_with_web_images
+from interaction.gpio_controller import hw as _hw
 import base64
 import numpy as np
 import cv2
@@ -105,6 +106,9 @@ def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
     if not label:
         raise HTTPException(status_code=400, detail="Label is required")
 
+    # Hardware: signal learning mode immediately (Green LED on, 1 short beep)
+    _hw.set_learn_mode()
+
     stored = 0
     skipped = 0
     mode = "single"
@@ -127,8 +131,10 @@ def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
                 if img is None:
                     raise ValueError("Failed to decode image from base64")
 
-                # ── Trigger LLM background augmentation ─────────────────────
-                background_tasks.add_task(_run_llm_augmentation_bg, label, img)
+                # ── LLM background augmentation (DISABLED for demo accuracy) ──
+                # Web-scraped images look different from Pi camera captures and
+                # contaminate the prototype centroid.  Re-enable for general use.
+                # background_tasks.add_task(_run_llm_augmentation_bg, label, img)
 
                 # ── Data Collector (Save raw for future detector training) ──
                 save_collected_data(img, label, req.roi_bbox)
@@ -140,8 +146,10 @@ def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
                 for var_img in variations:
                     try:
                         emb_result = get_embedding(
-                            var_img, 
-                            use_focus_roi=not bool(req.roi_bbox),
+                            var_img,
+                            # Use center ROI for learning: user holds object steady,
+                            # centre crop is more reproducible than focus/edge ROI.
+                            use_center_roi=not bool(req.roi_bbox),
                             manual_bbox=req.roi_bbox
                         )
                         generated_embeddings.append(emb_result["embedding"])
@@ -254,6 +262,13 @@ def commit_learning(req: LearningRequest, background_tasks: BackgroundTasks):
             wizard_message = (
                 f"Capture complete. {viewpoint_coverage} diverse views stored for '{label}'."
             )
+
+        # Hardware: success if we stored at least one prototype; otherwise
+        # revert to infer mode (all frames were redundant — no new data added).
+        if stored > 0:
+            _hw.set_success()
+        else:
+            _hw.set_infer_mode()
 
         return {
             "status": "stored",

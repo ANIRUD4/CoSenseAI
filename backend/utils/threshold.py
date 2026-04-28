@@ -28,10 +28,9 @@ import numpy as np
 from typing import List
 
 # ── Tuning constants ──────────────────────────────────────────
-K: float               = 1.5
-FLOOR: float           = 0.50   # raised: never go below 50% similarity
-GLOBAL_FALLBACK: float = 0.72   # raised: used when 0-1 prototypes exist
-                                 # (was 0.60, too lenient for single-class case)
+K: float               = 2.0    # wider spread tolerance (demo: few prototypes per class)
+FLOOR: float           = 0.45   # demo-safe minimum — still protects against junk matches
+GLOBAL_FALLBACK: float = 0.60   # used when 0-1 prototypes exist; was 0.72 (too strict for demo)
 NUDGE_SCALE: float     = 0.05
 MAX_NUDGE: float       = 0.10
 

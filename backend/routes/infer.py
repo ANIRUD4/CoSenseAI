@@ -3,13 +3,12 @@ from fastapi import APIRouter, HTTPException
 from backend.schemas.inference import InferRequest
 from backend.storage.prototype_store import (
     load_prototypes,
-    save_prototypes,
     MIN_FOR_MEAN,
 )
 from backend.storage.negative_store import get_negative_vectors
 from backend.utils.similarity import compute_similarity
 from backend.utils.confidence import softmax
-from backend.utils.drift import prune_prototypes
+# prune_prototypes moved to /admin/prune — not called during inference
 from backend.utils.threshold import (
     compute_class_threshold,
     FLOOR as SIM_FLOOR,
@@ -21,6 +20,7 @@ from learning.tflite_classifier import (
     get_classifier,
     MIN_SAMPLES_FOR_TFLITE,
 )
+from interaction.gpio_controller import hw as _hw
 import base64
 import numpy as np
 import cv2
@@ -108,19 +108,21 @@ def infer_object(req: InferRequest):
         raise HTTPException(status_code=400, detail="No embedding or image provided")
 
     # =====================================================================
-    # 0️⃣  Load + prune drifted data
+    # 0️⃣  Load prototype store
+    #  NOTE: Drift pruning is intentionally NOT run here.
+    #  Pruning during live inference can silently delete prototypes that were
+    #  just learned (e.g. during a demo).  Use POST /admin/prune explicitly.
     # =====================================================================
     prototypes = load_prototypes()
 
     if not prototypes:
+        # Hardware: stay in infer-mode breathing (nothing to identify yet)
+        _hw.set_infer_mode()
         return {
             "message":    "No knowledge available. Please teach me first.",
             "candidates": [],
             "decision":   "empty",
         }
-
-    prototypes = prune_prototypes(prototypes)
-    save_prototypes(prototypes)
 
     labels          = []
     sims            = []
@@ -215,7 +217,10 @@ def infer_object(req: InferRequest):
     # =====================================================================
     # 2️⃣  Calibrate confidence (softmax over similarities)
     # =====================================================================
-    confs = softmax(sims, temperature=0.05)
+    # temperature=0.15 gives meaningful confidence margins between classes.
+    # The old value of 0.05 caused one class to dominate at 99.99%,
+    # making the gap threshold (0.15) trivially met and masking real ambiguity.
+    confs = softmax(sims, temperature=0.15)
 
     # =====================================================================
     # 3️⃣  Build candidate list
@@ -299,6 +304,8 @@ def infer_object(req: InferRequest):
     ask_confirm = (uncertainty_signal == "high")
 
     if top1_sim < class_sim_threshold:
+        # Hardware: unknown object — alert user to teach the system
+        _hw.set_awaiting_feedback()
         return {
             "message":           "Unknown object. Please teach me.",
             "candidates":        candidates[:3],
@@ -315,34 +322,20 @@ def infer_object(req: InferRequest):
         }
 
     # =====================================================================
-    # 6b️⃣  Single-class guard
+    # 6b️⃣  Single-class guard (REMOVED for demo accuracy)
+    #  The old guard added a 1.15× headroom on top of class_sim_threshold,
+    #  meaning the very first object taught was almost always rejected as
+    #  "unknown_single_class".  The adaptive threshold (GLOBAL_FALLBACK=0.60)
+    #  is already conservative enough to protect against false positives.
     # =====================================================================
-    if len(candidates) == 1:
-        headroom_threshold = class_sim_threshold * 1.15
-        if top1_sim < headroom_threshold:
-            print(
-                f"SINGLE-CLASS GUARD: only 1 class known, "
-                f"top1_sim={top1_sim:.4f} < headroom={headroom_threshold:.4f} → unknown"
-            )
-            return {
-                "message":           "Unknown object. Please teach me.",
-                "candidates":        candidates[:3],
-                "decision":          "unknown_single_class",
-                "top1":              top1,
-                "top2":              top2,
-                "gap":               gap,
-                "similarity":        top1_sim,
-                "class_threshold":   class_sim_threshold,
-                "uncertainty_signal": "high",
-                "ask_confirm":       True,
-                "smoothed_label":    smoothed_label,
-                "embedding":         req.embedding,
-            }
+    # (single-class guard removed)
 
     # =====================================================================
     # 7️⃣  Low confidence
     # =====================================================================
     if top1 < CONF_THRESHOLD:
+        # Hardware: low confidence — alert user for feedback
+        _hw.set_awaiting_feedback()
         return {
             "message":           "Low confidence. Please teach me.",
             "candidates":        candidates[:3],
@@ -360,6 +353,8 @@ def infer_object(req: InferRequest):
     # 8️⃣  Ambiguous
     # =====================================================================
     if gap < MARGIN_THRESHOLD:
+        # Hardware: ambiguous — ask user to confirm
+        _hw.set_awaiting_feedback()
         return {
             "message":           "Ambiguous result. Please confirm.",
             "candidates":        candidates[:3],
@@ -382,6 +377,9 @@ def infer_object(req: InferRequest):
     # 9️⃣  Confident — Semantic Ensembling (CLIP + TFLite)
     # =====================================================================
     smoother.reset()
+
+    # Hardware: confident result — return to Red breathing (infer mode)
+    _hw.set_infer_mode()
 
     final_label = top_label
     final_engine = _engine_used

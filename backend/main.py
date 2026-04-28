@@ -2,7 +2,8 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics, boost
+from fastapi.staticfiles import StaticFiles
+from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics, boost, admin
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file
@@ -28,7 +29,13 @@ app.include_router(confirm.router)
 app.include_router(export_import.router)
 app.include_router(metrics.router)
 app.include_router(boost.router)
+app.include_router(admin.router)
 
-@app.get("/")
+@app.get("/health")
 def health():
     return {"status": "IntelShare running"}
+
+# Serve static files from the React app
+# Ensure the React app is built (npm run build) before running the backend in production
+if os.path.exists("frontend_react/dist"):
+    app.mount("/", StaticFiles(directory="frontend_react/dist", html=True), name="static")

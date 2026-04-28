@@ -42,7 +42,7 @@ MAX_PROTOTYPES_PER_LABEL: int = 100
 
 #: Legacy gate used by `is_diverse_enough()` (single-embedding gating, still used for
 #: single-shot feedback flows). Not used in the multishot clustering path.
-MIN_DIVERSITY: float = 0.15
+MIN_DIVERSITY: float = 0.10  # lowered from 0.15 for demo: stores more viewpoints
 
 
 # ──────────────────────────────────────────────────────────────

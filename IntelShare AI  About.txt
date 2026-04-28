@@ -1,0 +1,13 @@
+IntelShare AI : This is my project 
+
+Users: Everybody that wants their own custom ai system.
+
+Components : raspberry pi 5 (hardware system), ui for raspberry, companion app
+
+Aim: projects aim is to create a hardware system which the users can interact with. The users can teach the ai for their own needs. If they want an ai to do a certain action, for example if user wants a ai to refill whenever the bottle is empty. To achieve this, the user can teach the ai by showing the empty bottle and gives a label(voice input) "empty bottle" and then maps an action to the corresponding label in companion app. Since the ai cant learn with a single data, the companion app must use llm to produce similar data for that label to increase the accuracy, so the user needs to input only few data in learn mode and our system produces similar datas using llm but users wont be aware of it, what users think is that they have given 3-7 inputs in learn mode and the ai has learned with 3-7 but in back the llm has worked to produce more datas, these datas are stored as embedding lists, since we are running in raspberry pi 5.  In infer mode, this when the system has to recognize  from what system has learned from users and has to do the action (but for prototype needs to mention the action that has to be performed) and the users are able to correct the system if wrong and the system asks for confirmation when its not that confident in a label, this ensures incremental learning and human in the loop. The companion app has a "marketplace" where the users, say user A can export their model online , and any other users, say user B with similar need can import that model from marketplace, so the user B dont need to go through the teaching process that user A went through.
+
+There are two modes learn and infer.
+
+A companion app: where user can map the labels to action (action needs to be mentioned by text for prototype) and a marketplace where users share their models. The companion app must be a mobile app.
+
+Raspberry ui: There is a 3.5inch screen with a small trigger button learn/infer in top right corner. The ui must have camera. In learn mode: a white circle to click image and a text field to write down the label also with an option for voice to text (in label). In infer mode: must have realtime cam , when it recognizes a label, the realtime cam stops and asks for confirmation then users can correct the system if it gives a wrong label. After confirmation/correction, the real time cam comes back.
