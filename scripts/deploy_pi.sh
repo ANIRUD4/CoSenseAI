@@ -22,9 +22,21 @@ if [ ! -d "venv" ]; then
 fi
 source venv/bin/activate
 
-# 3. Install ARM-optimized Torch (Highly recommended for Pi)
-echo "Step 3: Installing ARM-optimized Torch..."
+# 3. Install Torch (ARM64 optimized)
+echo "Step 3: Installing Torch..."
+source venv/bin/activate
 pip install --upgrade pip
+
+# Check for 64-bit
+ARCH=$(getconf LONG_BIT)
+if [ "$ARCH" != "64" ]; then
+    echo "ERROR: You are running a $ARCH-bit OS. PyTorch requires 64-bit Raspberry Pi OS."
+    exit 1
+fi
+
+# Try standard PyPI first (official aarch64 wheels are now common)
+# If that fails, fall back to the specialized CPU index
+pip install torch torchvision || \
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # 4. Install Project Requirements
