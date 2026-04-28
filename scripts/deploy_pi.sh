@@ -11,8 +11,8 @@ echo "===================================================="
 # 1. System Dependencies
 echo "Step 1: Installing System Dependencies..."
 sudo apt update
-sudo apt install -y python3-venv python3-pip ffmpeg libatlas-base-dev \
-                    chromium-browser curl nodejs npm git libopenjp2-7 \
+sudo apt install -y python3-venv python3-pip ffmpeg libopenblas-dev \
+                    chromium curl nodejs npm git libopenjp2-7 \
                     libtiff6 libxcb1 libx11-6
 
 # 2. Setup Python Virtual Environment
