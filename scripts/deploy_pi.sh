@@ -40,7 +40,7 @@ cd ..
 
 # 6. Configure Systemd Service
 echo "Step 6: Registering Systemd Service..."
-# Note: This assumes the project is in /home/pi/IntelShareAI
+# Note: This assumes the project is in /home/cyril/IntelShareAI
 # If you are in a different directory, edit scripts/intelshare.service first.
 sudo cp scripts/intelshare.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -58,5 +58,5 @@ echo "----------------------------------------------------"
 echo "To finish the setup, add the following line to your "
 echo "~/.config/wayfire/wayfire.ini file under [autostart]:"
 echo ""
-echo "intelshare = /home/pi/IntelShareAI/scripts/autostart_kiosk.sh"
+echo "intelshare = /home/cyril/IntelShareAI/scripts/autostart_kiosk.sh"
 echo "===================================================="
