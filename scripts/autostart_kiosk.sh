@@ -30,16 +30,14 @@ sleep 2
 # --kiosk            : True fullscreen (no title bar, no address bar)
 # --noerrdialogs     : Suppress crash dialogs
 # --disable-infobars : No "Chromium is not your default browser" bar
-# --incognito        : No cached sessions / state from previous runs
 # --app              : Minimal single-app mode (no tabs)
 chromium \
   --kiosk \
   --noerrdialogs \
   --disable-infobars \
-  --incognito \
+  --disable-gpu \
   --use-fake-ui-for-media-stream \
-  --auto-select-desktop-capture-source="IntelShare" \
-  --enable-usermedia-screen-capturing \
-  --allow-http-screen-capture \
+  --allow-insecure-localhost \
   --unsafely-treat-insecure-origin-as-secure=http://localhost:8000 \
+  --enable-features=WebRTC \
   --app=http://localhost:8000/pi

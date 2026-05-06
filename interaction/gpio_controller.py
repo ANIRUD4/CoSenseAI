@@ -29,10 +29,21 @@ import time
 
 # ── gpiozero import (graceful fallback for non-Pi environments) ──────────────
 try:
+    # Pi 5 requires the lgpio factory — set it explicitly before any gpiozero import
+    from gpiozero.pins.lgpio import LGPIOFactory
+    from gpiozero import Device
+    Device.pin_factory = LGPIOFactory()
     from gpiozero import PWMLED, LED, ToneBuzzer
     _HW_AVAILABLE = True
-except (ImportError, Exception):
-    _HW_AVAILABLE = False
+    print("[GPIO] Using lgpio pin factory (Pi 5 compatible)")
+except Exception as e:
+    print(f"[GPIO] lgpio factory failed ({e}), trying default gpiozero...")
+    try:
+        from gpiozero import PWMLED, LED, ToneBuzzer
+        _HW_AVAILABLE = True
+    except (ImportError, Exception) as e2:
+        print(f"[GPIO] gpiozero unavailable ({e2}) — running in MOCK mode")
+        _HW_AVAILABLE = False
 
 
 # ── Buzzer helper ────────────────────────────────────────────────────────────
