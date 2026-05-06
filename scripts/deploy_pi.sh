@@ -81,11 +81,11 @@ npm install --registry=https://registry.npmjs.org/ --fetch-retry-maxtimeout=6000
 
 export NODE_OPTIONS="--max-old-space-size=2048"
 echo "Starting Vite build..."
-if ! npm run build -- --force; then
+if ! npm run build; then
     echo "WARNING: Build failed with bus error or OOM. Attempting deep clean..."
     rm -rf node_modules package-lock.json
     npm install --fetch-retry-maxtimeout=600000 --no-audit --no-fund
-    npm run build -- --force
+    npm run build
 fi
 cd ..
 
