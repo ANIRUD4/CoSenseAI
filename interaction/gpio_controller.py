@@ -341,7 +341,7 @@ class GPIOController:
     def beep(self, times=1):
         self._buzzer.beep(count=times)
 
-    def stop_all(self):
+    def stop(self):
         self._stop_leds()
 
 
