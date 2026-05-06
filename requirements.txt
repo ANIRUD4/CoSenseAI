@@ -4,32 +4,21 @@ pydantic
 numpy
 scikit-learn
 opencv-python
-mediapipe
 vosk
-ffmpeg-python
-soundfile
-boto3
+sounddevice
+tflite-runtime
 python-dotenv
+boto3
 httpx[http2]
 duckduckgo-search
-google-generativeai
 h2
 # ── CLIP / OpenCLIP (Tier-1 embedding engine) ──────────────────────────────
-# Preferred model: MobileCLIP-S1 (edge-optimised, 3x faster than ViT-B/32)
-# Fallback model: ViT-B/32 / openai (heavier, universally available)
 open-clip-torch
-# torch and torchvision are pulled automatically as dependencies of open-clip-torch.
-# On Raspberry Pi install the ARM-optimised wheel separately:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 Pillow
 matplotlib
 # ── Background Removal (U²-Net saliency masking) ───────────────────────────
-# rembg uses U²-Net ONNX models to accurately remove static backgrounds.
-# onnxruntime is the CPU inference backend for rembg on edge devices.
 rembg
 onnxruntime
 # ── Hardware Feedback (Raspberry Pi 5) ─────────────────────────────────────
-# gpiozero handles the high-level logic for LEDs and Buzzer.
-# lgpio is the modern backend required for Raspberry Pi 5 (replaces RPi.GPIO).
 gpiozero
-lgpio
+lgpio
