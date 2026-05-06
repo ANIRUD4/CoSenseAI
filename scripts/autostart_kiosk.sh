@@ -37,4 +37,9 @@ chromium \
   --noerrdialogs \
   --disable-infobars \
   --incognito \
+  --use-fake-ui-for-media-stream \
+  --auto-select-desktop-capture-source="IntelShare" \
+  --enable-usermedia-screen-capturing \
+  --allow-http-screen-capture \
+  --unsafely-treat-insecure-origin-as-secure=http://localhost:8000 \
   --app=http://localhost:8000/pi
