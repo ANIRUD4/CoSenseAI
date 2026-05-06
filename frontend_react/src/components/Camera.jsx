@@ -151,6 +151,9 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             onTouchMove={handleMove}
             onTouchEnd={handleEnd}
         >
+            <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
+                DEBUG: v3
+            </div>
             <video
                 ref={videoRef}
                 autoPlay
