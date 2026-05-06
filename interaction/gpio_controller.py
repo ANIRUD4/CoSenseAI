@@ -2,9 +2,9 @@
 gpio_controller.py — Hardware status feedback for IntelShareAI (Raspberry Pi 5)
 
 Pin mapping (BCM numbering):
-    Red  LED  → GPIO 17
-    Green LED → GPIO 27
-    Buzzer    → GPIO 22
+    Red  LED  → GPIO 5
+    Green LED → GPIO 6
+    Buzzer    → GPIO 12
 
 States:
     boot()               → Both LEDs solid ON  (system starting up)
@@ -70,8 +70,8 @@ _INIT_ERROR = " | ".join(_INIT_LOG)
 
 # -- Buzzer helper ────────────────────────────────────────────────────────────
 _BUZZER_PIN = 12
-_RED_PIN    = 16
-_GREEN_PIN  = 20
+_RED_PIN    = 5
+_GREEN_PIN  = 6
 
 class _BuzzerHelper:
     def __init__(self, pin):
