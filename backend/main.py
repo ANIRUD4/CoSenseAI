@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from backend.routes import learn, infer, confirm, export_import, perceive, speech, act, metrics, boost, admin
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -35,11 +36,12 @@ app.include_router(admin.router)
 def health():
     return {"status": "IntelShare running"}
 
-# @app.get("/")
-# def root():
-#     return {"status": "IntelShare online", "version": "1.0.4"}
+@app.get("/")
+def root():
+    # Redirect root to the Pi UI (React app served at /pi)
+    return RedirectResponse(url="/pi")
 
-# Serve static files from the React app
-# Ensure the React app is built (npm run build) before running the backend in production
+# Serve the React build at /pi — matches Vite's base: '/pi' config
 if os.path.exists("frontend_react/dist"):
-    app.mount("/", StaticFiles(directory="frontend_react/dist", html=True), name="static")
+    app.mount("/pi", StaticFiles(directory="frontend_react/dist", html=True), name="static")
+

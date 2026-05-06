@@ -37,4 +37,4 @@ chromium \
   --noerrdialogs \
   --disable-infobars \
   --incognito \
-  --app=http://localhost:8000
+  --app=http://localhost:8000/pi
