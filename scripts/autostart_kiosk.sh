@@ -46,6 +46,5 @@ chromium \
   --autoplay-policy=no-user-gesture-required \
   --use-fake-ui-for-media-stream \
   --allow-insecure-localhost \
-  --unsafely-treat-insecure-origin-as-secure=http://localhost:8000 \
-  --enable-features=WebRTC \
-  --app=http://localhost:8000/pi
+  --unsafely-treat-insecure-origin-as-secure=http://127.0.0.1:8000 \
+  --app=http://127.0.0.1:8000/pi

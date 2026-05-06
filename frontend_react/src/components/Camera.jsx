@@ -32,9 +32,14 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 // Try to find a USB or Webcam device by default
                 const usbCam = videoInputs.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('webcam'));
                 setSelectedDeviceId(usbCam ? usbCam.deviceId : videoInputs[0].deviceId);
+            } else {
+                alert("DEBUG: 0 video devices found by browser.");
+                startCamera(null); // Force a fallback attempt
             }
         }).catch(err => {
             console.error("Device enumeration failed", err);
+            alert("ENUM ERROR: " + err.message);
+            startCamera(null); // Force a fallback attempt
         });
     }, []);
 
