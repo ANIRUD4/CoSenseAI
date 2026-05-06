@@ -34,6 +34,8 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             }
         } catch (err) {
             console.error("Error accessing camera:", err);
+            // Alert added so we can see the exact error on the kiosk screen!
+            alert("CAMERA ERROR: " + err.message + " (" + err.name + ")");
         }
     };
 
@@ -153,6 +155,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full h-full object-cover pointer-events-none"
             />
             <canvas ref={canvasRef} width="640" height="480" className="hidden" />

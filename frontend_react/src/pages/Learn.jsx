@@ -64,6 +64,7 @@ const Learn = () => {
             console.error("Mic access error:", err);
             setError("Microphone access denied or unavailable.");
             setListeningData(null);
+            alert("MIC ERROR: " + err.message + " (" + err.name + ")");
         }
     };
 
