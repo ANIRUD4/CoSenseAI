@@ -59,6 +59,16 @@ def video_feed():
 def health():
     return {"status": "IntelShare running"}
 
+@app.get("/test_gpio")
+def test_gpio():
+    # Force a beep and return the current hardware availability
+    from interaction.gpio_controller import _HW_AVAILABLE
+    hw.ready() # triggers 1 long beep
+    return {
+        "status": "triggered ready sequence",
+        "hardware_available": _HW_AVAILABLE
+    }
+
 @app.get("/")
 def root():
     # Redirect root to the Pi UI (React app served at /pi)

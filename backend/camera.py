@@ -17,7 +17,9 @@ class CameraStream:
             
         self.running = True
         # Initialize video capture. On Pi, this grabs the default USB or CSI camera.
-        self.video = cv2.VideoCapture(0)
+        # Force CAP_V4L2 to ensure OpenCV only takes the video node and doesn't use GStreamer
+        # which might accidentally lock the ALSA audio node!
+        self.video = cv2.VideoCapture(0, cv2.CAP_V4L2)
         
         # Set a reasonable resolution to match the frontend expectations
         self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
