@@ -71,10 +71,22 @@ pip install -r requirements.txt
 # 6. Build React Frontend
 echo "Step 6: Building React Frontend..."
 cd frontend_react
+
+# Clear Vite/Rollup cache to prevent bus errors (often caused by corrupted cache on Pi)
+rm -rf node_modules/.vite
+rm -rf dist
+
 npm install --fetch-retry-maxtimeout=600000 --fetch-retries=5 --no-audit --no-fund || \
 npm install --registry=https://registry.npmjs.org/ --fetch-retry-maxtimeout=600000 --no-audit --no-fund
+
 export NODE_OPTIONS="--max-old-space-size=2048"
-npm run build
+echo "Starting Vite build..."
+if ! npm run build -- --force; then
+    echo "WARNING: Build failed with bus error or OOM. Attempting deep clean..."
+    rm -rf node_modules package-lock.json
+    npm install --fetch-retry-maxtimeout=600000 --no-audit --no-fund
+    npm run build -- --force
+fi
 cd ..
 
 # 7. Configure Systemd Service
