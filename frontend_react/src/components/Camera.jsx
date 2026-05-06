@@ -49,7 +49,17 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             const constraints = {
                 video: deviceId ? { deviceId: { exact: deviceId } } : true
             };
-            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Wrap in a timeout to detect deadlocks
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("TIMEOUT: Browser is deadlocking on getUserMedia!")), 3000)
+            );
+            
+            const mediaStream = await Promise.race([
+                navigator.mediaDevices.getUserMedia(constraints),
+                timeoutPromise
+            ]);
+            
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
@@ -192,7 +202,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 onTouchEnd={handleEnd}
             >
                 <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
-                    DEBUG: v6
+                    DEBUG: v7
                 </div>
             <video
                 ref={videoRef}

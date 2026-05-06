@@ -33,18 +33,13 @@ pkill -f chromium || true
 # Extra buffer for all routes and static files to be registered
 sleep 2
 
-# Launch Chromium in Kiosk mode pointing to the production UI served by FastAPI
-# --kiosk            : True fullscreen (no title bar, no address bar)
-# --noerrdialogs     : Suppress crash dialogs
-# --disable-infobars : No "Chromium is not your default browser" bar
-# --app              : Minimal single-app mode (no tabs)
+# Launch Chromium pointing to the production UI served by FastAPI
 chromium \
-  --kiosk \
+  --start-maximized \
   --noerrdialogs \
   --disable-infobars \
   --disable-gpu \
   --autoplay-policy=no-user-gesture-required \
-  --use-fake-ui-for-media-stream \
   --allow-insecure-localhost \
   --unsafely-treat-insecure-origin-as-secure=http://127.0.0.1:8000 \
   --disable-features=VideoCaptureUseGpuMemoryBuffer \
