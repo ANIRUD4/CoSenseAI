@@ -36,6 +36,7 @@ chromium \
   --noerrdialogs \
   --disable-infobars \
   --disable-gpu \
+  --autoplay-policy=no-user-gesture-required \
   --use-fake-ui-for-media-stream \
   --allow-insecure-localhost \
   --unsafely-treat-insecure-origin-as-secure=http://localhost:8000 \

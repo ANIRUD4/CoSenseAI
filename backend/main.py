@@ -10,7 +10,19 @@ from fastapi.middleware.cors import CORSMiddleware
 # Load environment variables from .env file
 load_dotenv()
 
-app = FastAPI(title="IntelShare")
+from contextlib import asynccontextmanager
+from interaction.gpio_controller import hw
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup sequence
+    hw.boot()
+    hw.ready()
+    yield
+    # Shutdown sequence
+    hw.cleanup()
+
+app = FastAPI(title="IntelShare", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
