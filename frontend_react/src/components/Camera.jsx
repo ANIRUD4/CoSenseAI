@@ -13,6 +13,9 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     const [currentPos, setCurrentPos] = useState(null);
     const [bbox, setBbox] = useState(null); // {x, y, w, h} in %
 
+    const [devices, setDevices] = useState([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+
     // Expose capture method to parents via ref
     useImperativeHandle(ref, () => ({
         capture: () => {
@@ -21,13 +24,38 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     }));
 
     useEffect(() => {
-        startCamera();
-        return () => stopCamera();
+        // First get the list of devices
+        navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
+            const videoInputs = deviceInfos.filter(device => device.kind === 'videoinput');
+            setDevices(videoInputs);
+            if (videoInputs.length > 0) {
+                // Try to find a USB or Webcam device by default
+                const usbCam = videoInputs.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('webcam'));
+                setSelectedDeviceId(usbCam ? usbCam.deviceId : videoInputs[0].deviceId);
+            }
+        }).catch(err => {
+            console.error("Device enumeration failed", err);
+        });
     }, []);
 
-    const startCamera = async () => {
+    useEffect(() => {
+        if (selectedDeviceId) {
+            startCamera(selectedDeviceId);
+        }
+        return () => stopCamera();
+    }, [selectedDeviceId]);
+
+    const startCamera = async (deviceId) => {
+        stopCamera(); // stop existing stream
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const constraints = {
+                video: {
+                    deviceId: { exact: deviceId },
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
@@ -141,19 +169,37 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     };
 
     return (
-        <div
-            ref={containerRef}
-            className="relative rounded-xl overflow-hidden shadow-lg bg-black aspect-video cursor-crosshair touch-none"
-            onMouseDown={handleStart}
-            onMouseMove={handleMove}
-            onMouseUp={handleEnd}
-            onTouchStart={handleStart}
-            onTouchMove={handleMove}
-            onTouchEnd={handleEnd}
-        >
-            <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
-                DEBUG: v3
-            </div>
+        <div className="relative group">
+            {/* Camera Selector Dropdown (Visible on touch/hover) */}
+            {devices.length > 1 && (
+                <div className="absolute top-2 right-2 z-50 opacity-50 hover:opacity-100 focus-within:opacity-100 transition-opacity bg-black/50 p-2 rounded-lg backdrop-blur-md">
+                    <select 
+                        className="bg-transparent text-white text-xs outline-none cursor-pointer max-w-[150px] truncate"
+                        value={selectedDeviceId || ''}
+                        onChange={(e) => setSelectedDeviceId(e.target.value)}
+                    >
+                        {devices.map((device, idx) => (
+                            <option key={device.deviceId} value={device.deviceId} className="bg-slate-900">
+                                {device.label || `Camera ${idx + 1}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            <div
+                ref={containerRef}
+                className="relative rounded-xl overflow-hidden shadow-lg bg-black aspect-video cursor-crosshair touch-none"
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
+            >
+                <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
+                    DEBUG: v4
+                </div>
             <video
                 ref={videoRef}
                 autoPlay
@@ -203,6 +249,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                     <CameraIcon className="w-8 h-8 text-white" />
                 </button>
             )}
+        </div>
         </div>
     );
 });
