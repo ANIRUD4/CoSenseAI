@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/pi/IntelShareAI
-ExecStart=/home/pi/IntelShareAI/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+WorkingDirectory=/home/cyril/IntelShareAI
+ExecStart=/home/cyril/IntelShareAI/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
 
