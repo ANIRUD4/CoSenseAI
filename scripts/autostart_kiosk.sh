@@ -35,11 +35,12 @@ sleep 2
 
 # Launch Chromium pointing to the production UI served by FastAPI
 chromium \
-  --start-maximized \
+  --kiosk \
   --noerrdialogs \
   --disable-infobars \
   --disable-gpu \
   --autoplay-policy=no-user-gesture-required \
+  --use-fake-ui-for-media-stream \
   --allow-insecure-localhost \
   --unsafely-treat-insecure-origin-as-secure=http://127.0.0.1:8000 \
   --disable-features=VideoCaptureUseGpuMemoryBuffer \
