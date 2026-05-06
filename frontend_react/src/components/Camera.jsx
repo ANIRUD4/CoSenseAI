@@ -123,10 +123,6 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
             >
-                <div className="absolute top-0 left-0 bg-blue-600 text-white font-bold px-2 py-1 z-50">
-                    DEBUG: MJPEG v1
-                </div>
-            
             <img
                 ref={imgRef}
                 crossOrigin="anonymous"
