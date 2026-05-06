@@ -84,13 +84,13 @@ class _BuzzerHelper:
                 pass
 
     def _beep_once(self, duration: float):
-        if not self._hw_pin:
+        if not self._bz:
             time.sleep(duration)
             return
         try:
-            self._hw_pin.on()
+            self._bz.on()
             time.sleep(duration)
-            self._hw_pin.off()
+            self._bz.off()
         except Exception:
             pass
 
