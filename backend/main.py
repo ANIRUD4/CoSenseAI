@@ -70,12 +70,17 @@ def test_gpio():
         "error_log": _INIT_ERROR
     }
 
+@app.get("/blink")
+def blink_test():
+    """Blink LEDs and beep to test hardware wiring."""
+    hw.blink_test()
+    return {"status": "triggered blink test"}
+
 @app.get("/")
-def root():
+def read_root():
     # Redirect root to the Pi UI (React app served at /pi)
     return RedirectResponse(url="/pi")
 
 # Serve the React build at /pi — matches Vite's base: '/pi' config
 if os.path.exists("frontend_react/dist"):
-    app.mount("/pi", StaticFiles(directory="frontend_react/dist", html=True), name="static")
 

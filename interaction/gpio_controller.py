@@ -88,15 +88,13 @@ class _BuzzerHelper:
             time.sleep(duration)
             return
         try:
-            # Handle both ToneBuzzer (.play) and Buzzer (.on)
-            if hasattr(self._bz, 'on'):
+            # If it's a passive buzzer, we need to toggle it fast
+            end_time = time.time() + duration
+            while time.time() < end_time:
                 self._bz.on()
-                time.sleep(duration)
+                time.sleep(0.001) # 1kHz-ish toggle
                 self._bz.off()
-            else:
-                self._bz.play()
-                time.sleep(duration)
-                self._bz.stop()
+                time.sleep(0.001)
         except:
             pass
 
@@ -130,7 +128,8 @@ class GPIOController:
         # LEDs
         if _HW_AVAILABLE:
             try:
-                self._red   = PWMLED(_RED_PIN)
+                # Use standard LED instead of PWMLED for maximum power
+                self._red   = LED(_RED_PIN)
                 self._green = LED(_GREEN_PIN)
             except Exception as e:
                 print(f"[GPIO] Hardware init failed: {e} — running in mock mode.")
@@ -142,6 +141,9 @@ class GPIOController:
 
         # Buzzer
         self._buzzer = _BuzzerHelper(_BUZZER_PIN)
+
+        # Initial state: everything off
+        self.stop()
 
         print(
             "[GPIO] Controller initialised -- "
@@ -192,11 +194,23 @@ class GPIOController:
             self._cancel_timeout()
             self._stop_leds()
             if self._red:
-                self._red.value = 1.0
+                self._red.on()
             if self._green:
                 self._green.off()
             print("[GPIO] STATE -> ready (Red solid, 1 long beep)")
         self._buzzer.beep(count=1, duration=0.50, gap=0)
+
+    def blink_test(self):
+        """Diagnostic: Blink both LEDs to test for inversion/brightness."""
+        with self._lock:
+            self._cancel_timeout()
+            self._stop_leds()
+            if self._red:
+                self._red.blink(n=5, on_time=0.2, off_time=0.2)
+            if self._green:
+                self._green.blink(n=5, on_time=0.2, off_time=0.2)
+            print("[GPIO] Diagnostic: Blinking LEDs...")
+        self._buzzer.beep(count=3, duration=0.1, gap=0.1)
 
     def set_infer_mode(self):
         """Inference mode: Red LED breathing (PWMLED.pulse), Green OFF."""
@@ -204,11 +218,11 @@ class GPIOController:
             self._cancel_timeout()
             self._stop_leds()
             if self._red:
-                # pulse(fade_in, fade_out, n=None) — repeats indefinitely
-                self._red.pulse(fade_in_time=1.0, fade_out_time=1.0)
+                # Standard LED doesn't pulse — blink slowly as fallback
+                self._red.blink(on_time=1.0, off_time=1.0)
             if self._green:
                 self._green.off()
-            print("[GPIO] STATE -> infer_mode (Red breathing)")
+            print("[GPIO] STATE -> infer_mode (Red blinking)")
 
     def set_awaiting_feedback(self, timeout_sec: float = 10.0):
         """
