@@ -49,23 +49,13 @@ except ImportError:
     _INIT_LOG.append("PWMLED missing")
 
 try:
-    from gpiozero import LED
-    _INIT_LOG.append("LED available")
+    from gpiozero import DigitalOutputDevice
+    _INIT_LOG.append("DigitalOutputDevice available")
 except ImportError:
-    LED = None
-    _INIT_LOG.append("LED missing")
+    DigitalOutputDevice = None
+    _INIT_LOG.append("DigitalOutputDevice missing")
 
-try:
-    try:
-        from gpiozero import ToneBuzzer as Buzzer
-    except ImportError:
-        from gpiozero import Buzzer
-    _INIT_LOG.append("Buzzer available")
-except ImportError:
-    Buzzer = None
-    _INIT_LOG.append("Buzzer missing")
-
-_HW_AVAILABLE = (PWMLED is not None) or (LED is not None) or (Buzzer is not None)
+_HW_AVAILABLE = (DigitalOutputDevice is not None)
 _INIT_ERROR = " | ".join(_INIT_LOG)
 
 # -- Buzzer helper ────────────────────────────────────────────────────────────
@@ -76,21 +66,21 @@ _GREEN_PIN  = 6
 class _BuzzerHelper:
     def __init__(self, pin):
         self._lock = threading.Lock()
-        self._bz = None
-        if Buzzer:
+        self._hw_pin = None
+        if DigitalOutputDevice:
             try:
-                self._bz = Buzzer(pin)
+                self._hw_pin = DigitalOutputDevice(pin)
             except:
                 pass
 
     def _beep_once(self, duration: float):
-        if not self._bz:
+        if not self._hw_pin:
             time.sleep(duration)
             return
         try:
-            self._bz.on()
+            self._hw_pin.on()
             time.sleep(duration)
-            self._bz.off()
+            self._hw_pin.off()
         except Exception:
             pass
 
@@ -124,9 +114,9 @@ class GPIOController:
         # LEDs
         if _HW_AVAILABLE:
             try:
-                # Use standard LED instead of PWMLED for maximum power
-                self._red   = LED(_RED_PIN)
-                self._green = LED(_GREEN_PIN)
+                # Use DigitalOutputDevice for maximum raw power
+                self._red   = DigitalOutputDevice(_RED_PIN)
+                self._green = DigitalOutputDevice(_GREEN_PIN)
             except Exception as e:
                 print(f"[GPIO] Hardware init failed: {e} — running in mock mode.")
                 self._red   = None
