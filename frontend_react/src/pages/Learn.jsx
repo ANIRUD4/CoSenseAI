@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Camera from '../components/Camera';
-import { teachModel } from '../services/api';
+import { teachModel, transcribeSpeech } from '../services/api';
 import { Check, Loader2, Mic, MicOff } from 'lucide-react';
 
 const Learn = () => {
@@ -10,53 +10,61 @@ const Learn = () => {
     const [success, setSuccess] = useState(null);
     const [error, setError] = useState(null);
     const [listeningData, setListeningData] = useState(null); // 'label' or 'action' or null
+    const mediaRecorderRef = useRef(null);
 
-    const startListening = (field) => {
+    const startListening = async (field) => {
         setError(null);
-        if (!('webkitSpeechRecognition' in window)) {
-            setError("Voice input not supported in this browser. Please use Chrome.");
-            return;
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            const audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                setListeningData(null);
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                
+                try {
+                    const response = await transcribeSpeech(audioBlob);
+                    const transcript = response.data.text;
+                    
+                    if (transcript) {
+                        if (field === 'label') setLabel(transcript);
+                        if (field === 'action') setAction(transcript);
+                    } else {
+                        setError("Could not hear anything clearly. Please try again.");
+                    }
+                } catch (err) {
+                    console.error("Transcription error:", err);
+                    setError("Failed to transcribe audio. Is the backend running?");
+                }
+                
+                // Stop all tracks to release microphone
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            setListeningData(field);
+            mediaRecorder.start();
+
+            // Automatically stop recording after 4 seconds
+            setTimeout(() => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    mediaRecorderRef.current.stop();
+                }
+            }, 4000);
+
+        } catch (err) {
+            console.error("Mic access error:", err);
+            setError("Microphone access denied or unavailable.");
+            setListeningData(null);
         }
-
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-
-        setListeningData(field);
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            if (field === 'label') setLabel(transcript);
-            if (field === 'action') setAction(transcript);
-            setListeningData(null);
-        };
-
-        recognition.onerror = (event) => {
-            setListeningData(null);
-            console.error("DEBUG SPEECH ERROR:", event); // Log FULL event for debugging
-            console.error("Error code:", event.error);
-            console.error("Message:", event.message);
-
-            // Handle specific errors gracefully without spamming console
-            if (event.error === 'network') {
-                setError("Voice unavailable (Network/Firewall blocked). Please type.");
-            } else if (event.error === 'not-allowed') {
-                setError("Microphone blocked. Check permissions.");
-            } else if (event.error === 'no-speech') {
-                // Ignore no-speech, just stop listening
-                return;
-            } else {
-                console.warn("Voice input error:", event.error);
-                setError(`Voice failed: ${event.error}. Please type.`);
-            }
-        };
-
-        recognition.onend = () => {
-            setListeningData(null);
-        };
-
-        recognition.start();
     };
 
     const handleCapture = async (frame, bbox) => {

@@ -8,7 +8,7 @@ import axios from 'axios';
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 // Change this to the IP of your Raspberry Pi on your local network:
-export const PI_BASE_URL = 'http://192.168.220.40:8000';
+export const PI_BASE_URL = 'http://10.47.44.53:8000';
 
 const api = axios.create({ baseURL: PI_BASE_URL, timeout: 15000 });
 const boostApi = axios.create({ baseURL: PI_BASE_URL, timeout: 600000 }); // 10-min timeout for boosts

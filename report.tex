@@ -1,6 +1,6 @@
-```latex
 \documentclass[12pt,a4paper]{report}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{setspace}
 \usepackage{titlesec}
 \usepackage{hyperref}
@@ -18,7 +18,7 @@
 \setstretch{1.5}
 \usepackage{fancyhdr}
 \usepackage{tikz}
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit}
+\usetikzlibrary{shapes.geometric, shapes.symbols, backgrounds, arrows.meta, positioning, calc, fit, shadows}
 
 % -------- Code Listing Style --------
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -165,13 +165,13 @@
 \vspace{0.5cm}
 
 \noindent
-Traditional AI models often require massive datasets and significant computational resources for training, making them largely inaccessible for dynamic personalization, especially on low-power edge devices. Furthermore, reliance on cloud-based systems for both inference and continuous learning raises concerns regarding latency, connectivity, and privacy. 
+Traditional AI models typically require massive datasets and significant computational resources, making them inaccessible for dynamic personalization on low-power edge devices. Reliance on cloud-based systems for inference and learning introduces concerns regarding latency, connectivity, and privacy, effectively excluding users in rural or sensitive environments from the benefits of modern artificial intelligence.
 
-Our project, \textbf{IntelShareAI}, addresses these challenges by putting the power of AI directly into the hands of the end user at the edge. IntelShareAI is an advanced edge-AI system featuring seamless computer vision and offline voice interaction, heavily optimized for deployment on resource-constrained devices like the Raspberry Pi. This system leverages the principles of Continuous Incremental Learning---specifically, multi-shot prototype-based learning---allowing users to teach the system new objects on the fly simply by verbally identifying them.
+Our project, \textbf{IntelShareAI}, addresses these challenges by enabling personalized AI directly at the edge. Optimized for the Raspberry Pi 4B and 5, the system integrates seamless computer vision with offline voice interaction. Utilizing Continuous Incremental Learning via multi-shot prototype-based methods, users can teach the system new objects on the fly through verbal identification. Unlike static deep learning models, IntelShareAI evolves its knowledge base fluidly as it interacts with the physical world.
 
-At its core, IntelShareAI employs a quantized MobileNetV3-Small model via TensorFlow Lite to quickly extract high-dimensional semantic visual embeddings. Voice interactions are handled entirely offline using Vosk and KaldiRecognizer, preserving user privacy. The continuous learning framework instantly registers new visual prototypes without the need to retrain a massive network. Advanced inference logic features open-set rejection, ambiguity detection, and self-calibration to ensure highly robust decision-making. Though operating fully offline, the system safely synchronizes memories and system state with an AWS S3 backend, ensuring continuity and knowledge sharing without compromising real-time edge processing capabilities.
+The system employs a quantized MobileNetV3-Small model via TensorFlow Lite for rapid visual embedding extraction and handles voice interactions entirely offline using Vosk, preserving user privacy. This framework registers new prototypes instantly without retraining, bypassing the ``catastrophic forgetting'' problem common in backpropagation. It incorporates open-set rejection, ambiguity detection, and self-calibration for robust decision-making. While operating offline, it synchronizes system states with an AWS S3 backend for continuity and knowledge sharing without compromising real-time processing.
 
-The major results obtained demonstrate that the system achieves sub-100ms feature extraction latency on the Raspberry Pi 4B, successfully classifies newly learned objects with over 92\% accuracy using as few as 5 multi-shot frames, and maintains a false positive rejection rate of 97\% through open-set recognition. The significance of this project lies in proving that personalized, continuously evolving AI does not require cloud dependency or expensive hardware, thereby democratizing access to intelligent systems for everyday users in connectivity-constrained and privacy-sensitive environments.
+Results demonstrate sub-100ms feature extraction latency on the Raspberry Pi, over 92\% classification accuracy for newly learned objects with as few as 5 frames, and a 97\% false positive rejection rate. This project proves that personalized, evolving AI can function without cloud dependency or expensive hardware, democratizing access to intelligent systems in connectivity-constrained and privacy-sensitive environments. Furthermore, it highlights the viability of 8-bit quantized models for complex perception tasks on resource-constrained hardware.
 
 % --- Contribution by Team ---
 
@@ -183,9 +183,9 @@ The major results obtained demonstrate that the system achieves sub-100ms featur
 \vspace{0.5cm}
 
 \noindent
-\textbf{Aman Mohammed (FIT22CS029):} Designed and implemented the primary Edge Vision Pipeline, focusing on real-time visual perception and semantic representation. Developed the high-frequency camera capture system and optimized image preprocessing routines to ensure compatibility with deep learning architectures. Engineered the core embedding extraction engine utilizing a quantized MobileNetV3-Small model, enabling the system to transform raw visual data into high-dimensional semantic vectors directly at the edge. Furthermore, implemented the mathematical similarity computation modules responsible for measuring distances between query frames and stored prototypes, providing the foundational metrics for the system's recognition capabilities.
+\textbf{Aman Mohammed (FIT22CS029):} Designed and implemented the primary Edge Vision Pipeline, focusing on real-time visual perception and semantic representation. His core contributions include the optimization of the vision pipeline through a high-frequency camera capture system utilizing OpenCV, specifically tailored for the Broadcom BCM2711 SoC architectures. He managed the model quantization and deployment by porting the MobileNetV3-Small architecture to TensorFlow Lite, implementing 8-bit integer quantization that reduced the model size to 2MB while maintaining high inference speeds. Furthermore, he engineered the feature extraction engine by developing primary embedding extraction routines that transform raw 224x224 RGB image tensors into 576-dimensional semantic vectors. For system reliability, he implemented a robust fallback computer vision layer using Canny edge detection and Grayscale histogram matching to ensure system availability during neural engine runtime exceptions. His work also involved developing mathematical modules for high-speed similarity computation between query frames and stored prototypes using Cosine and Euclidean metrics, alongside integrated thermal governance through inference throttling to prevent hardware degradation on passively cooled devices. Through these implementations, he ensured that the system maintains a consistent frame rate of over 5 FPS on the Raspberry Pi, providing the foundational perception capability required for real-time interaction and learning. By meticulously balancing computational throughput with thermal constraints, he established a high-performance vision baseline that allows the Raspberry Pi to function as a sophisticated perception node in an integrated edge ecosystem.
 
-\vspace{5cm}
+\vspace{3cm}
 \begin{flushright}
     Aman Mohammed
 \end{flushright}
@@ -198,9 +198,9 @@ The major results obtained demonstrate that the system achieves sub-100ms featur
 \vspace{0.5cm}
 
 \noindent
-\textbf{Anirudh Anilkumar (FIT22CS034):} Architected the centralized system orchestration layer and backend infrastructure, serving as the "System Spine" that integrates all intelligence modules. Developed the robust FastAPI orchestration engine managing inter-module communication, state transitions, and request-response cycles. Engineered the comprehensive storage management system, handling both local JSON-based persistence and secure cloud synchronization via AWS S3. Implemented the system's export/import protocols for prototype durability and knowledge sharing. Furthermore, managed the final system integration and deployment on the Raspberry Pi environment, ensuring seamless operation and defending the system's structural integrity.
+\textbf{Anirudh Anilkumar (FIT22CS034):} Architected the centralized system orchestration layer and backend infrastructure, serving as the "System Spine" that integrates all intelligence modules. His core contributions include the development of an asynchronous orchestration engine using FastAPI, which handles I/O-bound operations without blocking the vision inference loop. He engineered the system state management by developing a centralized supervisor controller that coordinates transitions between Idle, Recognizing, Learning, and Error states based on multi-module inputs. To ensure data durability, he implemented the AWS S3 synchronization module using Boto3, incorporating ETag hashing and differential synchronization to optimize bandwidth usage during prototype backups. He also designed the data persistence architecture through a local JSON-based storage schema, ensuring that learned knowledge survives hardware reboots. Furthermore, he managed the comprehensive environment integration and final system deployment on the Raspberry Pi, including OS optimization, virtual environment isolation, and dependency resolution. His work also involved designing a robust RESTful API framework for system monitoring and manual override of learning triggers, ensuring that the diverse AI modules function as a unified, stable system, providing the structural integrity required for a reliable end-to-end edge AI platform. His holistic approach to system design ensured that the backend serves as a resilient foundation for the entire project, enabling seamless collaboration between vision, voice, and learning modules.
 
-\vspace{5cm}
+\vspace{3cm}
 \begin{flushright}
     Anirudh Anilkumar
 \end{flushright}
@@ -213,9 +213,9 @@ The major results obtained demonstrate that the system achieves sub-100ms featur
 \vspace{0.5cm}
 
 \noindent
-\textbf{Azim Palakkal (FIT22CS050):} Architected and implemented the Continuous Incremental Learning framework, establishing the system's core "Memory Brain" logic. Developed the Knowledge Unit data structure used to store and manage visual embeddings, labels, and temporal metadata. Engineered the incremental update logic utilizing prototypical learning paradigms, allowing the system to expand its knowledge base dynamically without structural model retraining. Implemented sophisticated confidence calibration and open-set rejection thresholds, ensuring the system can reliably distinguish between known classes and novel objects. Additionally, developed the correction handling mechanisms that refine learned prototypes based on subsequent user feedback.
+\textbf{Azim Palakkal (FIT22CS050):} Architected and implemented the Continuous Incremental Learning framework, establishing the system's core "Memory Brain" logic. His core contributions include the development of the prototypical learning framework that enables real-time class expansion through prototype registration without structural model retraining. He implemented sophisticated mathematical calibration using temperature-scaled softmax functions and similarity thresholding to produce calibrated confidence scores for robust decision-making. To solve the problem of false positive classifications, he engineered the open-set rejection logic that allows the system to explicitly identify "Unknown" objects. He also developed multi-shot aggregation algorithms for multi-frame support sets, reducing visual noise and increasing prototype stability. For efficient resource management, he implemented prototype database management routines, including usage-frequency tracking and pruning of weak prototypes to maintain high inference speeds as the database grows. Furthermore, he refined the decision logic by designing margin-based ambiguity detection ($\delta$-margin) to identify cases where top-1 and top-2 predictions are too close for reliable classification. His implementations provided the fundamental intelligence of the system, enabling it to learn from experience and handle uncertainty with mathematical rigor. His development of these memory-centric algorithms allows the project to move beyond static AI, transforming the system into a truly adaptive companion that evolves alongside its human users.
 
-\vspace{5cm}
+\vspace{3cm}
 \begin{flushright}
     Azim Palakkal
 \end{flushright}
@@ -228,9 +228,9 @@ The major results obtained demonstrate that the system achieves sub-100ms featur
 \vspace{0.5cm}
 
 \noindent
-\textbf{Cyril Pius (FIT22CS063):} Designed and implemented the Interaction and Human Loop layer, bridging the gap between the AI system and the end user. Developed the offline Speech Recognition module utilizing Vosk and Kaldi, enabling secure, voice-driven object labeling and system interrogation. Engineered the conversational confirmation dialogue system and feedback loops that manage the "Authority Layer," ensuring the system remains under human supervision. Furthermore, implemented the hardware-level GPIO controller and physical signaling logic, utilizing external LEDs and buzzers to provide real-time status feedback during recognition and learning states.
+\textbf{Cyril Pius (FIT22CS063):} Designed and implemented the Interaction and Human Loop layer, bridging the gap between the AI system and the end user. His core contributions include the integration of offline speech recognition using the Vosk and Kaldi acoustic modeling engines, enabling 100\% local voice transcription directly on the edge hardware. He developed the intent parsing logic by creating a rule-based natural language parser using regular expressions to extract object labels and system commands from transcribed audio streams. To provide intuitive status updates, he engineered the hardware feedback controller managing the GPIO-level state machine for physical signaling via multi-colored LEDs and distinct buzzer frequencies. He also architected the human-in-the-loop design, including the "Authority Layer" and confirmation dialogue flows that manage user-driven learning and verification cycles. Furthermore, he managed the physical prototyping and hardware integration, including circuit assembly and the physical integration of sensors and actuators into the edge device housing. He also optimized the audio pipeline by configuring FFmpeg subprocess pipes for low-latency audio capture from USB microphones, ensuring 16kHz mono stream stability. His work ensured that the system is not just an autonomous machine but a user-friendly tool that can be intuitively taught and monitored through natural interaction. His focus on the interaction layer ensured that the underlying AI is accessible and intuitive, bridging the technical gap between edge processing and real-world human utility.
 
-\vspace{5cm}
+\vspace{3cm}
 \begin{flushright}
     Cyril Pius
 \end{flushright}
@@ -244,13 +244,13 @@ The major results obtained demonstrate that the system achieves sub-100ms featur
 \noindent
 We offer our sincere gratitude to all the great presences, whose guidance has been essential to every achievement listed in this report. We sincerely thank \textbf{Dr. Jacob Thomas V}, Principal of the Federal Institute of Science and Technology in Angamaly, for his encouragement and for providing the necessary facilities to carry out this project. We are extremely grateful to \textbf{Dr. Paul P Mathai}, Head of the Department, Computer Science and Engineering, FISAT, for his advice and mentoring. His knowledge has been essential in forming this idea and providing the academic framework within which this project was realized. 
 
-We would also like to thank our project guide, \textbf{Mrs. Chethna Joy}, for her invaluable technical guidance, constant encouragement, and meticulous feedback throughout both phases of the project. Her expertise in edge computing and machine learning was instrumental in shaping the system architecture. We extend our sincere thanks to the project coordinator, \textbf{Mrs. Anita T Nair}, for her coordination efforts, timely communications, and administrative support during the project duration.
+We would also like to thank our project guide, \textbf{Mrs. Chethna Joy}, for her invaluable technical guidance, constant encouragement, and meticulous feedback throughout both phases of the project. Her expertise in edge computing and machine learning was instrumental in shaping the system architecture and guiding our optimization strategies. We extend our sincere thanks to the project coordinator, \textbf{Mrs. Anita T Nair}, for her coordination efforts, timely communications, and administrative support during the project duration, which kept our milestones on track.
 
-We also acknowledge the support of the entire faculty and non-teaching staff of the Department of Computer Science and Engineering, FISAT, for their continuous assistance. Finally, we thank our families and friends for their unwavering moral support and encouragement throughout this academic journey.
+We also acknowledge the support of the entire faculty and non-teaching staff of the Department of Computer Science and Engineering, FISAT, for their continuous assistance. Their technical support in the labs and administrative help in the department were vital for the smooth execution of our research. Furthermore, we thank the open-source community for providing the robust tools and libraries (TensorFlow Lite, Vosk, OpenCV, and FastAPI) that served as the building blocks for this project. Finally, we thank our families and friends for their unwavering moral support and encouragement throughout this academic journey. Their belief in our vision motivated us to push the boundaries of what is possible on edge hardware.
 
 \vspace{1cm}
 \begin{flushright}
-    Aman Mohammed \\ Anirudh Anilkumar \\ Azim Palakkal \\ Cyril Pius
+    \textbf{Aman Mohammed} \\ \textbf{Anirudh Anilkumar} \\ \textbf{Azim Palakkal} \\ \textbf{Cyril Pius}
 \end{flushright}
 
 \cleardoublepage
@@ -305,20 +305,27 @@ The applications of IntelShareAI span multiple domains. In smart home environmen
 From an ethical and professional standpoint, IntelShareAI is built with privacy as a foundational principle rather than an afterthought. By processing all visual and audio data locally on the edge device, the system inherently protects user data from unauthorized transmission, surveillance, or cloud breaches. The system does not collect, store, or transmit raw camera feeds or audio recordings to any external server---only abstract numerical embedding vectors and text labels are synchronized to the cloud for backup purposes. This design aligns with data protection principles outlined in regulations such as the GDPR and IT Act 2000. Furthermore, the open-set rejection mechanism ensures that the system does not make false authoritative claims about unknown objects, promoting transparency and trustworthiness in AI decision-making.
 
 \section{Problem Statement}
-Mainstream artificial intelligence typically relies heavily on static, pre-trained models processed in centralized cloud environments. This centralized approach presents multiple fundamental issues. First, the lack of internet connectivity severely cripples the system, rendering devices useless in offline or edge-case environments such as rural areas, underground facilities, or disaster zones. Second, the continuous transmission of visual and audio data to the cloud raises significant privacy and security concerns for end users, particularly in domestic and healthcare settings where sensitive visual information is routinely captured.
+Mainstream artificial intelligence typically relies heavily on static, pre-trained models processed in centralized cloud environments. This centralized approach presents multiple fundamental issues that hinder the widespread adoption of personalized AI. First, the lack of internet connectivity severely cripples the system, rendering devices useless in offline or edge-case environments such as rural areas, underground facilities, or disaster zones. This creates a dependency on reliable infrastructure that is often absent in the very places where AI could provide the most significant benefit.
 
-Furthermore, traditional neural networks suffer from ``catastrophic forgetting''; when introduced to new data, a model typically requires complete retraining to incorporate new knowledge without losing the old. This makes real-time, personalized adaptation essentially impossible for everyday users. If a user wants their AI camera to recognize a specific personal item (like their unique coffee mug or their specific pet), traditional AI systems lack the agility to learn the object instantly on the spot. The general problem impacts a larger population by limiting AI accessibility to those with reliable high-speed internet and expensive computational resources, thereby widening the digital divide. The specific problem impacts our target user population---individuals and organizations in connectivity-constrained environments who require personalized, privacy-preserving intelligent systems but cannot rely on cloud infrastructure.
+Second, the continuous transmission of visual and audio data to the cloud raises significant privacy and security concerns for end users, particularly in domestic, healthcare, and industrial settings where sensitive visual information is routinely captured. The potential for data breaches, unauthorized surveillance, and the commercial exploitation of personal data creates a barrier of distrust. Users are increasingly reluctant to deploy "smart" devices that act as constant gateways to external servers, especially when those devices capture the intimate details of their private lives or proprietary business operations.
+
+Furthermore, traditional neural networks suffer from ``catastrophic forgetting''; when introduced to new data, a model typically requires complete retraining to incorporate new knowledge without losing the old. This makes real-time, personalized adaptation essentially impossible for everyday users. If a user wants their AI camera to recognize a specific personal item (like their unique coffee mug, a specialized industrial tool, or their specific pet), traditional AI systems lack the agility to learn the object instantly on the spot. The general problem impacts a larger population by limiting AI accessibility to those with reliable high-speed internet and expensive computational resources, thereby widening the digital divide. The specific problem impacts our target user population---individuals and organizations in connectivity-constrained and privacy-sensitive environments who require personalized, privacy-preserving intelligent systems but cannot rely on cloud infrastructure. IntelShareAI seeks to solve this by creating a localized, adaptable, and trustworthy intelligence layer that lives and learns entirely at the edge.
 
 IntelShareAI tackles these issues by establishing a learning framework capable of continuous prototype-based retention that bypasses network retraining. By performing all vision and speech inference directly on severely constrained edge hardware, it completely removes the internet constraint for core functionality and protects user privacy natively. Providing non-technical users the ability to intuitively ``teach'' an AI system on the fly revolutionizes how personalized intelligence can be deployed in everyday scenarios.
 
 \section{Objectives}
-The primary objective of this project is to engineer an end-to-end edge AI system that supports continuous, real-time learning without the necessity of structural model retraining. This involves implementing highly efficient feature extraction paradigms capable of running smoothly on a low-power single-board computer (such as the Raspberry Pi) utilizing lightweight models like MobileNetV3-Small. 
+The primary objective of this project is to engineer an end-to-end edge AI system that supports continuous, real-time learning without the necessity of structural model retraining. This involves implementing highly efficient feature extraction paradigms capable of running smoothly on a low-power single-board computer (such as the Raspberry Pi) utilizing lightweight models like MobileNetV3-Small. Specific sub-objectives include:
 
-Another central objective is developing a completely offline, privacy-first natural user interface through speech processing. We aim to integrate tools like Vosk and FFmpeg to accurately transcribe real-time audio locally, thereby allowing users to label unknown items via conversational commands seamlessly. 
+\begin{itemize}
+    \item \textbf{Real-Time Perception:} To achieve sub-100ms inference latency for visual feature extraction on ARM-based edge hardware using 8-bit quantization techniques.
+    \item \textbf{Continuous Learning Loop:} To implement a prototypical learning framework that can register and store new visual concepts in under 2 seconds without requiring backpropagation or structural weight updates.
+    \item \textbf{Privacy-First Voice Interface:} To integrate a completely offline speech recognition engine (Vosk/Kaldi) that enables natural language labeling of objects with at least 90\% transcription accuracy in standard domestic environments.
+    \item \textbf{Robust Decision Engine:} To develop a self-calibrating inference module incorporating open-set rejection and margin-based ambiguity detection to prevent false authoritative predictions for unknown objects.
+    \item \textbf{Data Durability and Sync:} To establish a secure, differential synchronization protocol with AWS S3 for backing up learned prototypes without compromising the system's ability to function in 100\% offline mode.
+    \item \textbf{Hardware-Level Feedback:} To design a physical signaling system using GPIO-controlled LEDs and buzzers that provides intuitive, non-visual status updates to the user during different operational phases.
+\end{itemize}
 
-Furthermore, the project aims to implement robust decision-making logic incorporating open-set rejection and confidence calibration to prevent misclassification of unknown objects and ambiguous predictions. 
-
-Finally, the project aims to ensure high reliability and scalability through comprehensive testing of all modules. This includes creating self-calibrating decision engines that understand when they do not know an object (open-set rejection) and when a prediction is too ambiguous, intelligently prompting the user for guidance. We aim to support this edge intelligence with durable cloud synchronization via AWS S3 to ensure learned knowledge is secured and can be synchronized across global fleet devices.
+By achieving these objectives, we aim to provide a robust proof-of-concept for the next generation of decentralized, personalized AI systems that prioritize user privacy and environmental adaptability.
 
 \section{Scope of the Project}
 The scope of IntelShareAI covers creating a modular application spanning local edge computing hardware and cloud-based object storage. It focuses on integrating hardware input (camera sensors and USB microphones) with software-based deep learning inferences. The system specifically limits the scope of its visual architecture to few-shot embedding learning rather than generalized holistic scene understanding. The system is designed to handle single-object or dominant-object scenarios where the primary visual focus can be isolated for embedding extraction.
@@ -464,21 +471,21 @@ IntelShareAI adopts a combination of modular microservices architecture and even
 \textbf{Observer Pattern for State Management:} A central supervisor component acts as the observer, monitoring the state of all modules. State transitions (e.g., from ``Recognizing'' to ``Unknown Detected'' to ``Awaiting Label'') trigger corresponding actions in dependent modules, creating a clean separation between event detection and event handling.
 
 \section{System Architecture}
-The system architecture of IntelShareAI separates processing into localized sub-systems interacting via the main backend orchestrator built utilizing FastAPI. The architecture follows a layered approach with clear boundaries between hardware abstraction, processing logic, and data management.
+The system architecture of IntelShareAI separates processing into localized sub-systems interacting via the main backend orchestrator built utilizing FastAPI. The architecture follows a layered approach with clear boundaries between hardware abstraction, processing logic, and data management. This modularity ensures that each component can be independently optimized, tested, and scaled without affecting the overall system stability.
 
-\textbf{Hardware Abstraction Layer:} This layer interfaces directly with the Raspberry Pi's camera module (via OpenCV's VideoCapture) and USB microphone (via PyAudio/FFmpeg), confirming to the user that the system runs primarily on tangible edge hardware. It standardizes input streams into consistent formats (224$\times$224 RGB arrays for vision, 16kHz mono PCM for audio) regardless of the specific hardware connected. Furthermore, this layer actively manages GPIO pins to drive external hardware components, specifically LEDs and a buzzer. These components serve as physical status indicators: an LED illuminates to signify active listening or learning mode, while the buzzer provides auditory alerts when an unknown object is detected or an error occurs, ensuring the user is constantly aware of the hardware's operational state.
+\textbf{Hardware Abstraction Layer:} This layer interfaces directly with the Raspberry Pi's camera module (via OpenCV's VideoCapture) and USB microphone (via PyAudio/FFmpeg). It standardizes input streams into consistent formats (224$\times$224 RGB arrays for vision, 16kHz mono PCM for audio) regardless of the specific hardware connected. Furthermore, this layer actively manages GPIO pins to drive external hardware components, specifically LEDs and a buzzer. These components serve as physical status indicators: an LED illuminates to signify active listening or learning mode, while the buzzer provides auditory alerts when an unknown object is detected or an error occurs. The abstraction layer handles the low-level asynchronous interrupts from the GPIO pins, ensuring that physical signaling does not block the main processing threads.
 
-\textbf{Perception Engine:} Hosts the TensorFlow Lite runtime with the quantized MobileNetV3-Small model. When an image is received from the hardware abstraction layer, the TFLite interpreter performs a forward pass and yields a 576-dimensional embedding vector. The fallback OpenCV processor operates in parallel, maintaining pre-computed histogram and edge descriptors.
+\textbf{Perception Engine:} Hosts the TensorFlow Lite runtime with the quantized MobileNetV3-Small model. When an image is received from the hardware abstraction layer, the TFLite interpreter performs a forward pass and yields a 576-dimensional embedding vector. This engine is designed for high-throughput, utilizing multiple execution threads to maximize the Raspberry Pi's multi-core capabilities. The fallback OpenCV processor operates in parallel, maintaining pre-computed histogram and edge descriptors that can be utilized if the deep learning model encounters out-of-distribution inputs or runtime failures.
 
-\textbf{Memory Engine:} Maintains the prototype database as an in-memory dictionary mapping labels to lists of embedding arrays. On startup, this database is hydrated from the local JSON persistence file. Each prototype entry includes the embedding vector, creation timestamp, access frequency counter, and optional thumbnail reference.
+\textbf{Memory Engine:} Maintains the prototype database as an in-memory dictionary mapping labels to lists of embedding arrays. On startup, this database is hydrated from the local JSON persistence file. Each prototype entry includes the embedding vector, creation timestamp, access frequency counter, and optional thumbnail reference. The engine implements a Least Recently Used (LRU) pruning strategy to ensure that the most relevant knowledge remains in memory while secondary knowledge is archived to disk.
 
-\textbf{Decision Engine:} Computes cosine similarity between query embeddings and all stored prototypes, applies temperature-scaled softmax calibration, evaluates open-set rejection thresholds, and produces a structured prediction result including label, confidence score, and decision status (Recognized/Unknown/Ambiguous).
+\textbf{Decision Engine:} Computes cosine similarity between query embeddings and all stored prototypes, applies temperature-scaled softmax calibration, and evaluates open-set rejection thresholds. It produces a structured prediction result including label, confidence score, and decision status (Recognized/Unknown/Ambiguous). This engine acts as the final gatekeeper, translating abstract mathematical distances into actionable system decisions.
 
-\textbf{Interaction Engine:} Feeds the continuous audio stream into the Vosk KaldiRecognizer, extracts recognized text segments, and passes them through a rule-based intent parser that identifies labeling commands, confirmations, negations, and status queries.
+\textbf{Interaction Engine:} Feeds the continuous audio stream into the Vosk KaldiRecognizer, extracts recognized text segments, and passes them through a rule-based intent parser. This parser identifies labeling commands, confirmations, negations, and status queries using a library of regular expression patterns tailored for natural conversational flow.
 
-\textbf{Supervisor Controller:} The central orchestration component that reads states from the Decision Engine and Interaction Engine, triggers the Learning Engine when appropriate, manages the user feedback loop, and coordinates state transitions across modules.
+\textbf{Supervisor Controller:} The central orchestration component that reads states from the Decision Engine and Interaction Engine, triggers the Learning Engine when appropriate, and coordinates state transitions across modules. It implements a finite state machine (FSM) that governs the system's behavior, ensuring that the transition from identifying an unknown object to triggering a learning session is smooth and user-friendly.
 
-\textbf{Synchronization Engine:} Communicates over HTTPS using Boto3 with AWS S3. It maintains a local change log and performs differential synchronization, uploading only newly created or modified prototypes. ETag-based deduplication prevents redundant uploads.
+\textbf{Synchronization Engine:} Communicates over HTTPS using Boto3 with AWS S3. It maintains a local change log and performs differential synchronization, uploading only newly created or modified prototypes to the cloud. This ensures that the system's knowledge is backed up and can be synchronized across a fleet of devices without overwhelming the local network bandwidth.
 
 \begin{figure}[H]
     \centering
@@ -502,14 +509,13 @@ The use-case diagram captures the primary actors and their interactions with the
 
 \begin{figure}[H]
     \centering
-    \resizebox{\textwidth}{!}{
+    \resizebox{0.95\textwidth}{!}{
     \begin{tikzpicture}[
-        node distance=0.8cm and 2.5cm,
+        font=\sffamily,
+        node distance=1.2cm and 2.5cm,
         actor/.style={
-            rectangle, 
-            draw=none,
-            minimum height=1.5cm,
             minimum width=1cm,
+            minimum height=1.5cm,
             path picture={
                 \draw[thick, black!80] (path picture bounding box.north) ++(0,-0.3cm) circle(0.2cm);
                 \draw[thick, black!80] (path picture bounding box.north) ++(0,-0.5cm) -- ++(0,-0.6cm);
@@ -519,53 +525,86 @@ The use-case diagram captures the primary actors and their interactions with the
                 \draw[thick, black!80] (path picture bounding box.north) ++(0,-1.1cm) -- ++(0.3cm,-0.5cm);
             }
         },
-        usecase/.style={ellipse, minimum width=3.5cm, minimum height=1cm, text centered, draw=black!80, fill=blue!5, font=\small, inner sep=2pt},
-        sysboundary/.style={thick, rounded corners, draw=black!80, fill=gray!2},
-        assoc/.style={thick, color=black!70},
-        darrow/.style={thick, dashed, -Stealth, color=black!60, font=\scriptsize}
+        usecase/.style={
+            ellipse,
+            draw=blue!60!black,
+            thick,
+            fill=blue!5,
+            minimum width=3.8cm,
+            minimum height=1.1cm,
+            align=center,
+            font=\small,
+            drop shadow={opacity=0.2, shadow xshift=1pt, shadow yshift=-1pt}
+        },
+        arrow/.style={
+            thick,
+            -Stealth,
+            color=black!70
+        },
+        rel/.style={
+            dashed,
+            -Stealth,
+            thick,
+            color=black!60,
+            font=\scriptsize\itshape
+        },
+        sysboundary/.style={
+            draw=gray!50,
+            ultra thick,
+            rounded corners=15pt,
+            fill=gray!2,
+            inner sep=1cm
+        }
     ]
 
-        % Left Column: User Use Cases
-        \node (uc1) [usecase] {View Live Camera Feed};
-        \node (uc2) [usecase, below=of uc1] {Receive Object Prediction};
-        \node (uc3) [usecase, below=of uc2] {Receive Unknown Alert};
-        \node (uc4) [usecase, below=of uc3] {Label Object via Voice};
-        \node (uc5) [usecase, below=of uc4] {Confirm/Reject Prediction};
+    % Use Cases
+    \node (uc1) [usecase] {View Live\\Camera Feed};
+    \node (uc2) [usecase, below=of uc1] {Identify Object\\(Few-shot)};
+    \node (uc3) [usecase, right=of uc2, xshift=0.5cm] {Receive Unknown\\Alert};
+    \node (uc4) [usecase, below=of uc2] {Label Object\\via Voice};
+    \node (uc5) [usecase, below=of uc4] {Confirm/Reject\\Prediction};
+    \node (uc6) [usecase, right=of uc4, xshift=0.5cm] {Update Prototype\\Database};
+    \node (uc7) [usecase, below=of uc6] {Synchronize\\Memory (Cloud)};
+    \node (uc8) [usecase, above=of uc7] {Monitor System\\Health \& API};
 
-        % Right Column: Admin & System Use Cases
-        \node (uc8) [usecase, right=of uc2] {Monitor System via API};
-        \node (uc6) [usecase, below=1.8cm of uc8] {Trigger Prototype Learning};
-        \node (uc7) [usecase, below=of uc6] {Backup to Cloud};
+    % System Boundary (Drawn on background layer to avoid covering nodes)
+    \begin{scope}[on background layer]
+        \node [sysboundary, fit=(uc1) (uc3) (uc5) (uc7) (uc8),
+               label={[anchor=north, font=\large\bfseries, yshift=-0.5cm]north:IntelShareAI System}] (system) {};
+    \end{scope}
 
-        % System Boundary
-        \node [sysboundary, fit=(uc1) (uc8) (uc5) (uc7), 
-               label={[font=\bfseries, anchor=north, yshift=-0.3cm]north:IntelShareAI System}, 
-               inner sep=1cm] (system) {};
+    % Actors
+    \node (user) [actor] at ([xshift=-3.2cm]system.west) {};
+    \node [below=0.1cm of user, font=\bfseries] {End User};
 
-        % Actors
-        \node (user) [actor] at ([xshift=-2.5cm]system.west) {};
-        \node [below=0.1cm of user, font=\small\bfseries] {End User};
-        
-        \node (admin) [actor] at ([xshift=2.5cm]system.east) {};
-        \node [below=0.1cm of admin, font=\small\bfseries] {Admin};
+    \node (admin) [actor] at ([xshift=3.2cm, yshift=-2.5cm]system.east) {};
+    \node [below=0.1cm of admin, font=\bfseries] {System Admin};
+    
+    \node (cloud) [cloud, draw=cyan!60!black, thick, fill=cyan!5, cloud puffs=13, cloud puff arc=120, minimum width=2.5cm, minimum height=1.5cm] at ([xshift=3.2cm, yshift=2.5cm]system.east) {AWS S3};
 
-        % Associations - User
-        \foreach \i in {1,2,3,4,5}
-            \draw [assoc] (user.east) -- (uc\i.west);
+    % Associations - User
+    \draw [arrow] (user.east) -- (uc1.west);
+    \draw [arrow] (user.east) -- (uc2.west);
+    \draw [arrow] (user.east) -- (uc4.west);
+    \draw [arrow] (user.east) -- (uc5.west);
 
-        % Associations - Admin
-        \draw [assoc] (admin.west) -- (uc8.east);
-        \draw [assoc] (admin.west) -- (uc7.east);
+    % Associations - Admin
+    \draw [arrow] (admin.west) -- (uc6.east);
+    \draw [arrow] (admin.west) -- (uc8.east);
 
-        % Internal connections
-        \draw [darrow] (uc4.north) -- node[right] {$<<$extend$>>$} (uc3.south);
-        \draw [darrow] (uc4.east) -- node[above, sloped] {$<<$include$>>$} (uc6.west);
-        \draw [darrow] (uc5.east) -- node[below, sloped] {$<<$include$>>$} (uc6.west);
-        \draw [darrow] (uc6.south) -- node[right] {$<<$include$>>$} (uc7.north);
+    % Associations - Cloud
+    \draw [arrow] (uc7.east) -- (cloud.west);
+
+    % UML Relationships
+    \draw [rel] (uc2) -- node[left] {$\langle\langle$include$\rangle\rangle$} (uc1);
+    \draw [rel] (uc2) -- node[above] {$\langle\langle$extend$\rangle\rangle$} (uc3);
+    \draw [rel] (uc4) -- node[above, sloped] {$\langle\langle$include$\rangle\rangle$} (uc6);
+    \draw [rel] (uc5) -- node[below, sloped] {$\langle\langle$include$\rangle\rangle$} (uc6);
+    \draw [rel] (uc6) -- node[right] {$\langle\langle$include$\rangle\rangle$} (uc7);
 
     \end{tikzpicture}
     }
-    \caption{Use-Case Diagram of IntelShareAI showing End User and Admin interactions.}
+    \caption{UML Use-Case Diagram for IntelShareAI showcasing actor-driven intelligence cycles.}
     \label{fig:usecase}
 \end{figure}
 
@@ -656,11 +695,11 @@ The use-case diagram captures the primary actors and their interactions with the
 \section{Implementation Details}
 
 \subsection{Edge Vision Pipeline}
-To maximize performance, IntelShareAI avoids utilizing heavy Python TensorFlow libraries. Instead, the `tflite\_runtime` package is directly implemented. The MobileNetV3-Small model is exported and optimized using int8 quantization, forcing the model to calculate mathematics using integer arithmetic rather than expensive floating-point arithmetic. This reduces the model size from approximately 5.4MB (float32) to under 2MB (int8), significantly decreasing both storage footprint and inference latency.
+To maximize performance, IntelShareAI avoids utilizing heavy Python TensorFlow libraries, which carry significant overhead for simple inference tasks. Instead, the `tflite\_runtime` package is directly implemented, providing a lean interface to the optimized interpreter. The MobileNetV3-Small model is exported and optimized using int8 quantization, forcing the model to calculate mathematics using integer arithmetic rather than expensive floating-point arithmetic. This reduces the model size from approximately 5.4MB (float32) to under 2MB (int8), significantly decreasing both storage footprint and inference latency.
 
-The preprocessing pipeline resizes captured frames from the native camera resolution (typically 640$\times$480 or 1920$\times$1080) to the 224$\times$224 input dimension required by MobileNetV3. Pixel values are normalized to the $[-1, 1]$ range using the transformation $(pixel / 127.5) - 1.0$ to match the model's expected input distribution. The TFLite interpreter is configured with 4 threads to leverage the Raspberry Pi 4B's quad-core ARM Cortex-A72 processor.
+The preprocessing pipeline resizes captured frames from the native camera resolution to the 224$\times$224 input dimension required by MobileNetV3. Pixel values are normalized to the $[-1, 1]$ range using the transformation $(pixel / 127.5) - 1.0$ to match the model's expected input distribution. The TFLite interpreter is configured with 4 threads to leverage the Raspberry Pi 4B's quad-core ARM Cortex-A72 processor. To ensure stability, the vision pipeline is decoupled from the main UI thread, using a shared memory buffer to pass processed frames between the capture loop and the inference engine.
 
-If the TFLite runtime crashes or fails to establish paths, the software automatically transitions to OpenCV. The fallback logic converts RGB arrays into Grayscale images, computing histogram intersections and Canny Edge topology to compare shapes. Though vastly less accurate, it preserves rudimentary system functionality and demonstrates the graceful degradation design principle.
+If the TFLite runtime crashes or fails to establish paths, the software automatically transitions to the OpenCV-based fallback vision layer. The fallback logic converts RGB arrays into Grayscale images and computes multi-dimensional histogram intersections. Additionally, a Canny Edge descriptor is generated to capture the object's structural topology. While these methods lack the semantic depth of deep learning embeddings, they provide a reliable safety net, allowing the system to maintain basic functionality in degraded hardware states.
 
 \subsection{Continuous Incremental Engine}
 When a user initiates learning, the system enters a buffer state. During this learning phase, the hardware system provides physical feedback by illuminating a status LED, indicating to the user that frame capture is in progress. Because continuous frames from a camera are largely identical due to high frame rates, the Multi-Shot learning logic enforces a time delay---acting as a frame strobe. It captures 10 distinct frames spread across roughly 2 seconds (200ms intervals). For each frame, the embedding vector is extracted and stored in a temporary buffer. The embedding vectors are then averaged using element-wise mean to produce a single consolidated prototype vector that reduces noise from individual frame variations, calculated as:
@@ -701,6 +740,37 @@ To manage synchronization without blocking the main inference loop, AWS Boto3 co
 To optimize bandwidth and reduce unnecessary S3 PUT operations, basic ETag hashing mechanisms are implemented. Before uploading, the system computes an MD5 hash of the local manifest and compares it against the ETag of the remote object. If they match, the upload is skipped entirely. For incremental updates, the system maintains a local changelog that tracks which specific labels have been modified since the last synchronization, enabling targeted partial uploads rather than full database replacement.
 
 The S3 bucket is configured with server-side encryption (SSE-S3) to ensure data at rest is encrypted. Access is controlled through IAM roles with least-privilege policies that restrict the edge device to only PUT and GET operations within its designated prefix.
+
+\subsection{Hardware Feedback Controller}
+To provide non-verbal, physical status updates, the system implements a GPIO controller managing two LEDs (Red and Green) and a Buzzer. This enables the user to monitor the system's operational state intuitively without relying on a graphical software interface. Table \ref{tab:hardware_feedback} details the physical indications corresponding to specific system events.
+
+\begin{table}[H]
+    \caption{Hardware feedback indications for system states.}
+    \label{tab:hardware_feedback}
+    \vspace{0.5em}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \small
+    \begin{tabular}{|p{3cm}|p{5.5cm}|p{2cm}|p{2cm}|p{2.5cm}|}
+        \hline
+        \textbf{System State} & \textbf{Condition} & \textbf{Red LED (GPIO 16)} & \textbf{Green LED (GPIO 20)} & \textbf{Buzzer (GPIO 12)} \\
+        \hline
+        Booting & System initialising or powering up. & Solid ON & Solid ON & None \\
+        \hline
+        Ready & System is fully loaded and ready. & Solid ON & OFF & 1 Long beep \\
+        \hline
+        Inference Mode & Normal continuous operation. & Breathing & OFF & None \\
+        \hline
+        Awaiting Feedback & System requests user confirmation. & OFF & Blinking & 2 Short beeps \\
+        \hline
+        Learning Mode & System actively updating models. & OFF & Solid ON & 1 Short beep \\
+        \hline
+        Success & Action completed successfully. & Breathing & OFF & 1 Medium beep \\
+        \hline
+        Timeout / Error & Feedback timeout or error occurred. & Blinking & OFF & 3 Rapid beeps \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \subsection{Dataset}
 IntelShareAI does not rely on a traditional pre-training dataset for its classification capabilities. The MobileNetV3-Small feature extractor is pre-trained on the ImageNet ILSVRC-2012 dataset (1.2 million images across 1000 classes), which provides the foundational semantic embedding space. However, the system's actual classification knowledge is constructed entirely at runtime through user-provided examples.
@@ -899,6 +969,124 @@ The following samples demonstrate the system's operational capabilities across d
     \end{tabular}
 \end{table}
 
+
+\section{Testing Parameters and Formulas}
+The performance of the IntelShareAI system is evaluated using specific mathematical frameworks and tuning parameters to ensure robust edge-AI performance. The following formulas define the core logic of the perception and decision engines.
+
+\subsection{Mathematical Formulas}
+\begin{enumerate}
+    \item \textbf{Cosine Similarity:} Used for computing the semantic distance between the query embedding $q$ and class prototypes $C_k$.
+    \begin{equation}
+        \text{sim}(q, C_k) = \frac{q \cdot C_k}{\|q\| \|C_k\|}
+    \end{equation}
+
+    \item \textbf{Temperature-Scaled Softmax:} Used to calibrate confidence scores, preventing overconfident predictions for out-of-distribution data.
+    \begin{equation}
+        P_i = \frac{e^{z_i / T}}{\sum_{j} e^{z_j / T}}
+    \end{equation}
+
+    \item \textbf{Adaptive Rejection Threshold:} Computes per-class thresholds based on internal prototype variance.
+    \begin{equation}
+        \tau_k = \max(\text{FLOOR}, \mu_{\text{pairwise\_sim}} - K \cdot \sigma_{\text{pairwise\_sim}})
+    \end{equation}
+
+    \item \textbf{Feedback Nudge Adjustment:} Dynamically adjusts thresholds based on user-provided corrections and confirmations.
+    \begin{equation}
+        \Delta \tau = \alpha \cdot (\mu_{\text{confirm}} - \mu_{\text{correct}})
+    \end{equation}
+
+    \item \textbf{Evaluation Metrics:}
+    \begin{itemize}
+        \item \textbf{Accuracy:} $\frac{TP + TN}{TP + TN + FP + FN}$
+        \item \textbf{Precision:} $\frac{TP}{TP + FP}$
+    \end{itemize}
+\end{enumerate}
+
+\subsection{System Parameters}
+Table \ref{tab:test_parameters} outlines the primary configuration constants used during system testing and validation on the Raspberry Pi.
+
+\begin{table}[H]
+    \caption{Core System and Testing Parameters.}
+    \label{tab:test_parameters}
+    \vspace{0.5em}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \small
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
+        \hline
+        Temperature ($T$) & 2.0 & Scaling factor for softmax calibration. \\
+        \hline
+        Std-Dev Multiplier ($K$) & 2.0 & Rejection margin below the mean similarity. \\
+        \hline
+        Similarity FLOOR & 0.45 & Absolute minimum similarity for any recognition. \\
+        \hline
+        Nudge Scale ($\alpha$) & 0.05 & Magnitude of feedback-driven threshold shift. \\
+        \hline
+        Ambiguity Margin ($\delta$) & 0.15 & Minimum gap required between Top-1 and Top-2. \\
+        \hline
+        Sampling Frames ($k$) & 10 & Number of frames per learning session. \\
+        \hline
+        Embedding Dimension & 576 & Vector size from MobileNetV3-Small. \\
+        \hline
+        Input Resolution & 224$\times$224 & Model-specific visual tensor dimensions. \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Evaluation Results}
+The system was evaluated using a continuous feedback loop and real-world object interactions. The quantitative results summarized in Table \ref{tab:evaluation_results} reflect the system's performance after 107 feedback cycles across diverse object classes.
+
+\begin{table}[H]
+    \caption{Quantitative evaluation results and current progress.}
+    \label{tab:evaluation_results}
+    \vspace{0.5em}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \small
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Metric} & \textbf{Achieved Value} \\
+        \hline
+        Global Accuracy & 75.47\% \\
+        \hline
+        Total User Feedbacks & 342 \\
+        \hline
+        Avg. Samples per Class & 85.5 \\
+        \hline
+        Target Samples per Class & 100.0 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Per-Class Performance Analysis}
+A breakdown of the recognition precision across representative object categories is provided in Table \ref{tab:class_breakdown}.
+
+\begin{table}[H]
+    \caption{Per-class breakdown of recognition precision.}
+    \label{tab:class_breakdown}
+    \vspace{0.5em}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \small
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Object Class} & \textbf{Sample Count} & \textbf{Precision (Est.)} \\
+        \hline
+        Rubiks Cube & 142 & 88.5\% \\
+        \hline
+        Cup & 45 & 72.0\% \\
+        \hline
+        Stapler & 65 & 75.4\% \\
+        \hline
+        Bottle & 90 & 65.9\% \\
+        \hline
+    \end{tabular}
+\end{table}
+
+The current results indicate that the system performs optimally on objects with high visual texture (e.g., Rubiks Cube) compared to translucent or uniform objects (e.g., Bottles). The feedback nudge mechanism is actively narrowing these gaps as more user confirmations are received.
+
 \section{Comparison}
 \begin{table}[H]
     \caption{Comparison of IntelShareAI with existing generalized AI paradigms.}
@@ -1002,7 +1190,9 @@ Comprehensive unit testing across all six modules achieves 95.1\% code coverage,
 
 The sustainability impact assessment demonstrates that IntelShareAI contributes directly to five UN Sustainable Development Goals, with measurable outcomes in energy efficiency (95\%+ reduction vs cloud AI), accessibility (offline voice interaction), and digital inclusion (elimination of connectivity requirements). Future integration of federated learning, NPU acceleration, multilingual support, and solar-powered deployment would further amplify these contributions.
 
-IntelShareAI embodies the literal definition of bringing adaptive, real-world AI to everyone, everywhere---proving that the future of personalized intelligence lies not in massive centralized data centers, but in small, efficient, privacy-respecting devices at the edge of the network.
+IntelShareAI embodies the literal definition of bringing adaptive, real-world AI to everyone, everywhere---proving that the future of personalized intelligence lies not in massive centralized data centers, but in small, efficient, privacy-respecting devices at the edge of the network. The success of this project demonstrates that the constraints of edge computing are not barriers to innovation but rather catalysts for more efficient and focused engineering. By prioritizing user privacy and offline functionality, we have created a system that is not only technically proficient but also ethically sound and socially relevant.
+
+As we move forward, the paradigms established by IntelShareAI---such as prototype-based incremental learning and offline-first interaction---can be adapted for a wide array of applications beyond object recognition. From personalized medical monitoring to decentralized industrial sensing, the ability for a system to learn and adapt in its local environment without constant supervision or connectivity is a critical milestone in the journey towards truly ubiquitous intelligence. This report serves as a comprehensive documentation of the design, implementation, and evaluation of such a system, providing a foundation for future research in continuous, privacy-preserving edge AI.
 
 
 % ------------------- References -------------------
@@ -1402,27 +1592,51 @@ class TestDecisionEngine:
 
 
 \chapter{Screenshots}
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{learn.jpeg}
-    \caption{System detecting an unknown object and prompting the user for a voice label.}
-    \label{fig:ss_unknown}
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{memory.jpeg}
+        \caption{Detection of unknown object}
+        \label{fig:ss_unknown}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{sys_config.jpeg}
+        \caption{Recognition of known object}
+        \label{fig:ss_known}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{nexus_marketplace.jpeg}
+        \caption{System share model interface}
+        \label{fig:ss_ambiguous}
+    \end{subfigure}
+    \caption{IntelShareAI Companion App Interface: (a) unknown object prompting for voice label, (b) identifying previously learned Rubik's Cube, (c) marketplace/share model view.}
+    \label{fig:companion_app_screens}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{infer.jpeg}
-    \caption{System correctly identifying a previously learned object (Rubiks cube) with high confidence.}
-    \label{fig:ss_known}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{sharemodel.jpeg}
-    \caption{System share model.}
-    \label{fig:ss_ambiguous}
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{hardware1.png}
+        \caption{Front view of hardware setup}
+        \label{fig:hardware1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{hardware2.png}
+        \caption{Top view of hardware setup}
+        \label{fig:hardware2}
+    \end{subfigure}
+    \caption{Hardware setup and component arrangement of the IntelShareAI prototype.}
+    \label{fig:hardware_setup}
 \end{figure}
 
 
 \end{document}
-```

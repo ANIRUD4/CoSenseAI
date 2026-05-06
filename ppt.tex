@@ -1,0 +1,1034 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+\usetheme{SimpleDarkBlue}
+% --- Fix algorithm font corruption / ligatures / characters ---
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{microtype}
+\usepackage{amssymb}
+
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+
+
+\usepackage{cmap}
+\usepackage{hyperref}
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+\usepackage{tikz} 
+\usetikzlibrary{shapes.geometric,arrows.meta}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+% restore algorithmic keywords so theme doesn't hide them
+\algrenewcommand\algorithmicprocedure{\textbf{procedure}}
+\algrenewcommand\algorithmicend{\textbf{end procedure}}
+\algrenewcommand\algorithmicreturn{\textbf{return}}
+\algrenewcommand\textproc[1]{\textnormal{#1}}
+
+% for better lists and spacing control inside algorithms
+\usepackage{enumitem}
+\setlist{nosep} % remove extra spacing in lists
+\algrenewcommand\algorithmicindent{1.0em}
+
+\usepackage{caption}
+\captionsetup{labelformat=empty}
+
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%--------------------------------------------------------------------------------------
+\setbeamerfont{title}{size=\large}
+
+\title{NetBERT:Transformer-Driven Robust Intrusion Detection Across Multi-Domain Network Traffic}
+\author{\small Project Domain: CyberSecurity\\
+Project Guide: Dr.Jyothish K John\\
+Team Members: \\
+Rhithika M Pradeep -- FIT22CS156 \\
+Sreelakshmi P -- FIT22CS180 \\
+Ron Binoy Mechery -- FIT22CS159 \\
+Sreerag K -- FIT22CS181}
+\date{\small May 5, 2026}% Date, can be changed to a custom date
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+\usepackage{enumitem}
+\setlist[itemize]{label=\textbullet}
+
+\setbeamertemplate{itemize items}[circle]
+\begin{document}
+
+\begin{frame}
+    % Print the title page as the first slide
+    \titlepage
+\end{frame}
+
+\section{Abstract}
+
+\begin{frame}{Abstract}
+\begin{itemize}
+
+\item Modern networks generate heterogeneous traffic, and encrypted protocols like DoH and DNS tunneling hide malicious activities.
+
+\item Traditional IDS fail to capture contextual relationships and struggle with class imbalance.
+
+\item Proposed \textbf{NetBERT}: a transformer-driven, explainable intrusion detection framework for multi-domain traffic.
+
+\item Uses \textbf{BERT} for contextual feature learning and \textbf{SMOTE–Tomek} for imbalance handling.
+
+\item A lightweight \textbf{MLP classifier} performs intrusion detection.
+
+\item \textbf{LIME-based explainability} and \textbf{Wireshark live packet capture} enable transparent and real-time detection.
+
+\end{itemize}
+\end{frame}
+
+\section{Introduction}
+\begin{frame}{Introduction}
+\begin{itemize}
+\item Modern cyberattacks increasingly exploit encrypted DNS channels such as DNS over HTTPS (DoH) and DNS tunneling to bypass traditional Intrusion Detection Systems (IDS).
+\item Encryption conceals malicious command-and-control traffic, making payload inspection ineffective for legacy IDS solutions.
+\item Transformer-based architectures like BERT extract contextual and semantic relationships from network traffic data, improving detection capability.
+\item SMOTomek (SMOTE + Tomek Links) is integrated to address severe class imbalance in intrusion datasets.
+\item The SMOTomek–BERT–MLP architecture is extended to encrypted DNS traffic analysis.
+\item Explainable AI (XAI) techniques such as LIME are incorporated to ensure transparency and interpretability.
+\item Goal: Accurate and explainable detection of DoH, DNS tunneling, and hybrid encrypted attacks, along with non-encrypted attacks.
+\end{itemize}
+\end{frame}
+
+\section{Problem Statement}
+\begin{frame}{Problem Statement}
+\begin{itemize}
+\item Existing SMOTE–BERT–MLP framework achieves high accuracy but lacks interpretability.
+\item They have not been adapted to detect modern encrypted DNS threats,which are harder to analyze.
+\item There is a need for an Explainable Deep learning IDS capable of identifying DOH,DNS tunneling, and hybrid attacks while maintaining high accuracy and interpretability.
+\end{itemize}
+\end{frame}
+
+
+\section{Project Objectives}
+\begin{frame}{Project Objectives}
+\begin{itemize}
+\item Extend the SMOTETomek–BERT–MLP architecture to the encrypted DNS traffic domain.
+\item Integrate Explainable AI methods such as LIME for local interpretability.
+\item Improve minority attack classification using enhanced oversampling techniques.
+\item Evaluate system performance on datasets such as CIRA-CIC-DoHBrw-2020, UNSW-NB15, CICIDS 2017 and NSL-KDD.
+\item Compare enhanced model results with the baseline SMOTE–BERT–MLP framework.
+\item Develop explainability dashboards to assist network administrators in interpreting detection decisions.
+\item Capture live network and analyze them in-order to classify them as benign or malicious.
+\end{itemize}
+\end{frame}
+
+
+\section{Social Relevance}
+\begin{frame}{Social Relevance}
+\begin{itemize}
+\item Strengthens cybersecurity infrastructure against encrypted DNS-based threats.
+\item Enhances resilience of smart cities, IoT systems, and digital services.
+\item Protects sensitive information from covert data exfiltration channels.
+\item Promotes trustworthy AI by integrating interpretability into deep learning-based IDS.
+\item Supports global efforts toward secure and reliable digital ecosystems.
+\end{itemize}
+\end{frame}
+
+
+\section{SDGs Addressed}
+\begin{frame}{SDGs Addressed}
+\begin{itemize}
+
+\item \textbf{SDG 9 – Industry, Innovation \& Infrastructure}
+\begin{itemize}
+    \item Promotes AI-driven innovation in cybersecurity infrastructure.
+    \item Strengthens digital networks through intelligent IDS solutions.
+\end{itemize}
+
+\item \textbf{SDG 11 – Sustainable Cities \& Communities}
+\begin{itemize}
+    \item Enhances cybersecurity resilience in smart city and IoT environments.
+    \item Ensures secure and privacy-preserving DNS communication.
+\end{itemize}
+
+\item \textbf{SDG 16 – Peace, Justice \& Strong Institutions}
+\begin{itemize}
+    \item Contributes to transparent and explainable AI for accountable cyber defense.
+    \item Supports the development of secure and trustworthy online ecosystems.
+\end{itemize}
+
+\end{itemize}
+\end{frame}
+
+
+\section{Overview of Literature Review}
+\begin{frame}{Overview of Literature Review (1/3)}
+\begin{table}[H]
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Literature Review of Transformer-Based Intrusion Detection Systems}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|p{2cm}|p{2.6cm}|p{3.3cm}|p{3cm}|p{4.2cm}|p{3.2cm}|p{3.2cm}|}
+\hline
+\textbf{Year \& Publisher} &
+\textbf{Authors} &
+\textbf{Paper Title} &
+\textbf{Objectives} &
+\textbf{Methodology} &
+\textbf{Conclusion / Results} &
+\textbf{Limitations} \\ \hline
+
+2024, IEEE Access &
+Ali et al. &
+BERT Transformer + MLP for Imbalanced IDS &
+Improve detection accuracy on imbalanced network traffic &
+BERT embeddings + SMOTE + lightweight MLP classifier &
+>98\% accuracy on UNSW-NB15, CIC-IDS2017 &
+Black-box model; no encrypted DNS handling \\ \hline
+
+2023, ACM DL &
+Tripathi et al. &
+Flow-based IDS using BERT-MLM &
+Model temporal flow relationships &
+BERT with Masked Language Modeling treating flows as sentences &
+F1 = 0.994 (in-domain), 0.904 (cross-domain) &
+High computational cost; no imbalance handling \\ \hline
+
+2022, IEEE Explore &
+Zhang \& Bao &
+DNN with Connection Efficiency Optimization &
+Improve detection efficiency and reduce CPU load &
+DNN + Immune Genetic Algorithm + hardware optimization &
+High accuracy; reduced processing overhead &
+Limited explainability; hardware dependency \\ \hline
+
+2024, ScienceDirect &
+Sayyad et al. &
+IDS-INT: Transformer Transfer Learning &
+Handle class imbalance with transfer learning &
+BERT-large + SMOTE + CNN-LSTM hybrid classifier &
+99.21\% accuracy; strong generalization &
+High training complexity; no XAI integration \\ \hline
+
+\end{tabular}}
+\end{table}
+\end{frame}
+
+\begin{frame}{Overview of Literature Review (2/3)}
+\begin{table}[H]
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Literature Review of Deep Learning and DNS-Based IDS Methods}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|p{2cm}|p{2.6cm}|p{3.3cm}|p{3cm}|p{4.2cm}|p{3.2cm}|p{3.2cm}|}
+\hline
+\textbf{Year \& Publisher} &
+\textbf{Authors} &
+\textbf{Paper Title} &
+\textbf{Objectives} &
+\textbf{Methodology} &
+\textbf{Conclusion / Results} &
+\textbf{Limitations} \\ \hline
+
+2024, Elsevier &
+Anand &
+FlowTransformer Framework &
+Evaluate shallow vs deep transformers for IDS &
+Modular Transformer (BERT, GPT-2); grid search experiments &
+F1 up to 98\%; lightweight models feasible &
+High computational demand for deep layers \\ \hline
+
+2022, IEEE &
+Yin et al. &
+Deep Autoencoder-based IDS &
+Improve minority attack representation &
+Stacked Non-Symmetric Deep Autoencoder (sNDAE) &
+>98\% accuracy; low false alarms &
+Not suitable for encrypted traffic; no XAI \\ \hline
+
+2024, Springer &
+Fernandez et al. &
+MLSTL-WSN with SMOTETomek &
+Improve imbalance handling in WSN &
+Contrastive Learning + SMOTETomek balancing &
+Strong generalization across datasets &
+Feature distortion risk in synthetic samples \\ \hline
+
+2024, IEEE TIFS &
+Gao et al. &
+GraphTunnel DNS Detection &
+Detect DNS tunneling via graph modeling &
+GraphSAGE + graph-to-image + CNN classifier &
+99.78\% F1; robust to wildcard tunnels &
+Complex graph construction; high memory usage \\ \hline
+
+\end{tabular}}
+\end{table}
+\end{frame}
+
+\begin{frame}{Overview of Literature Review (3/3)}
+\begin{table}[H]
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Literature Review of Encrypted DNS and Explainable IDS}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|p{2cm}|p{2.6cm}|p{3.3cm}|p{3cm}|p{4.2cm}|p{3.2cm}|p{3.2cm}|}
+\hline
+\textbf{Year \& Publisher} &
+\textbf{Authors} &
+\textbf{Paper Title} &
+\textbf{Objectives} &
+\textbf{Methodology} &
+\textbf{Conclusion / Results} &
+\textbf{Limitations} \\ \hline
+
+2024, IEEE USBEREIT &
+Bykov \& Chernyshov &
+DNS Tunnel Detection using ML &
+Fast and efficient DNS tunnel detection &
+LightGBM with entropy \& statistical DNS features &
+Macro F1 up to 1.00; low latency &
+Limited semantic analysis; no explainability \\ \hline
+
+2025, SpringerOpen &
+Mustafa \& Saeed &
+BERT + LIME/SHAP for Text Classification &
+Improve interpretability of deep models &
+BERT embeddings + MLP + LIME/SHAP &
+97–99\% accuracy with transparency &
+General NLP focus; not IDS-specific \\ \hline
+
+2024, Elsevier &
+Alorainy &
+Encrypted DNS Detection using BERT &
+Detect DoH/DoT encrypted tunnels &
+BERT + Graph + SMOTE + MLP fusion &
+99.47\% accuracy; low false positives &
+Limited cross-domain evaluation \\ \hline
+
+2023, Elsevier &
+Ness &
+Hybrid CNN–BiLSTM DNS Detection &
+Improve adversarial DNS detection &
+CNN + BiLSTM + Softmax classifier &
+99.12\% accuracy; adversarial robustness &
+No XAI integration; limited real-time adaptability \\ \hline
+
+\end{tabular}}
+\end{table}
+\end{frame}
+
+\section{System Architecture}
+\begin{frame}{System Architecture}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{system arch.jpeg}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\section*{Project Phases and Results}
+
+% ==========================
+% PHASE 1
+% ==========================
+
+\begin{frame}{Phases of Project (1/8)}
+\textbf{Phase 1: Dataset Collection and Understanding} \\[6pt]
+
+The project utilized benchmark intrusion detection datasets:
+
+\begin{itemize}
+    \item CIC-DoHBrw-2020
+    \item UNSW-NB15
+    \item CICIDS2017
+    \item NSL-KDD
+\end{itemize}
+
+Each dataset contains labeled benign and malicious network traffic records with multiple attack categories.
+
+Extensive exploratory data analysis (EDA) was performed to understand feature distributions and class imbalance.
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Well-understood intrusion datasets prepared for preprocessing.
+\end{frame}
+
+
+% ==========================
+% PHASE 2
+% ==========================
+
+\begin{frame}{Phases of Project (2/8)}
+\textbf{Phase 2: Data Preprocessing and Feature Engineering} \\[6pt]
+
+The following preprocessing steps were applied:
+
+\begin{itemize}
+    \item Removal of irrelevant and redundant columns
+    \item Handling missing and infinite values
+    \item Label encoding of categorical classes
+    \item Stratified train-test split
+\end{itemize}
+
+To address severe class imbalance:
+
+\begin{itemize}
+    \item SMOTETomek technique was applied on training data
+\end{itemize}
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Balanced and cleaned dataset ready for model training.
+\end{frame}
+
+
+% ==========================
+% PHASE 3
+% ==========================
+
+\begin{frame}{Phases of Project (3/8)}
+\textbf{Phase 3: Feature Transformation using BERT} \\[6pt]
+
+To leverage transformer-based contextual representations:
+
+\begin{itemize}
+    \item Tabular network features were converted into structured textual format
+    \item Pretrained BERT tokenizer was applied
+    \item CLS token embeddings (768-dimensional vectors) were extracted
+\end{itemize}
+
+This enabled semantic representation of statistical network traffic features.
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+High-dimensional contextual embeddings for intrusion detection.
+\end{frame}
+
+
+% ==========================
+% PHASE 4
+% ==========================
+
+\begin{frame}{Phases of Project (4/8)}
+\textbf{Phase 4: Hybrid Model Architecture (BERT + MLP)} \\[6pt]
+
+A hybrid deep learning framework was designed:
+
+\begin{itemize}
+    \item Input: 768-dimensional BERT embeddings
+    \item Class imbalance handled using SMOTETomek
+    \item Multi-Layer Perceptron (MLP) classifier
+\end{itemize}
+
+The MLP learns complex nonlinear decision boundaries over contextual embeddings.
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Optimized classifier for benign vs malicious traffic prediction.
+\end{frame}
+
+
+% ==========================
+% PHASE 5
+% ==========================
+
+\begin{frame}{Phases of Project (5/8)}
+\textbf{Phase 5: Model Training and Optimization} \\[6pt]
+
+Model training was performed with:
+
+\begin{itemize}
+    \item Stratified training-validation split
+    \item Adam-based optimization
+    \item Early stopping strategy
+    \item GPU acceleration (when available)
+\end{itemize}
+
+Training loss curves were monitored to ensure convergence and prevent overfitting.
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Best-performing trained model checkpoint saved for evaluation.
+\end{frame}
+
+% ==========================
+% PHASE 6
+% ==========================
+
+\begin{frame}{Phases of Project (6/8)}
+\textbf{Phase 6: Model Evaluation} \\[6pt]
+
+Performance was evaluated using:
+
+\begin{itemize}
+    \item Accuracy
+    \item Precision, Recall, F1-Score
+    \item Confusion Matrix
+    \item ROC-AUC analysis
+\end{itemize}
+
+Comparative evaluation was also performed between:
+
+\begin{itemize}
+    \item Original tabular features
+    \item BERT-transformed embeddings
+\end{itemize}
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Validated improvement using transformer-based feature learning.
+\end{frame}
+
+
+% ==========================
+% PHASE 7
+% ==========================
+
+\begin{frame}{Phases of Project (7/8)}
+\textbf{Phase 7: Explainable AI using LIME} \\[6pt]
+
+To enhance interpretability:
+
+\begin{itemize}
+    \item LIME (Local Interpretable Model-Agnostic Explanations) was applied
+    \item Generated local explanations for selected intrusion samples
+    \item Identified key contributing features for predictions
+\end{itemize}
+
+This provided transparency into model decisions and improved trustworthiness.
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Interpretable intrusion detection system with feature-level explanations.
+\end{frame}
+
+% ==========================
+% PHASE 8
+% ==========================
+
+\begin{frame}{Phases of Project (8/8)}
+\textbf{Phase 8: Real-Time Intrusion Detection System} \\[6pt]
+
+The trained model was integrated into a live detection framework:
+
+\begin{itemize}
+    \item Real-time packet capture using Tshark
+    \item Flow-based feature computation
+    \item Live BERT embedding generation
+    \item Real-time MLP classification
+\end{itemize}
+
+Predictions include:
+
+\begin{itemize}
+    \item Traffic label (Benign / Malicious)
+    \item Confidence score
+    \item Automated explanation sentence
+\end{itemize}
+
+\vspace{0.2cm}
+\textbf{Outcome:}
+Fully functional real-time AI-powered intrusion detection system.
+\end{frame}
+
+%------------------------ Phase 2 ------------------------
+\section{Algorithm}
+
+\begin{frame}{Algorithm (1/3)}
+\begin{algorithm}[H]
+\small
+\begin{algorithmic}
+\Procedure{Hybrid\_IDS}{Dataset}
+
+  \State \textbf{Step 1: Dataset Acquisition}
+  \State \hspace{1.2em}(a) Load benchmark intrusion datasets
+  \State \hspace{1.2em}(b) Identify feature columns and target label
+  \State \hspace{1.2em}(c) Perform exploratory data analysis
+
+  \State \textbf{Step 2: Data Preprocessing}
+  \State \hspace{1.2em}(a) Remove irrelevant or redundant features
+  \State \hspace{1.2em}(b) Handle missing and infinite values
+  \State \hspace{1.2em}(c) Encode target labels
+  \State \hspace{1.2em}(d) Perform stratified train-test split
+
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+
+\begin{frame}{Algorithm (2/3)}
+\begin{algorithm}[H]
+\small
+\begin{algorithmic}
+
+  \State \textbf{Step 3: Feature Transformation using BERT}
+  \State \hspace{1.2em}(a) Convert tabular features into structured textual format
+  \State \hspace{1.2em}(b) Tokenize text using pretrained BERT tokenizer
+  \State \hspace{1.2em}(c) Extract CLS token embeddings (768-dimension)
+
+  \State \textbf{Step 4: Class Imbalance Handling}
+  \State \hspace{1.2em}(a) Apply SMOTETomek on training embeddings
+  \State \hspace{1.2em}(b) Generate balanced training data
+
+  \State \textbf{Step 5: Model Training}
+  \State \hspace{1.2em}(a) Initialize MLP classifier (Adam solver)
+  \State \hspace{1.2em}(b) Train on balanced BERT embeddings
+  \State \hspace{1.2em}(c) Monitor convergence and loss
+  \State \hspace{1.2em}(d) Save trained model
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+
+\begin{frame}{Algorithm (3/3)}
+\begin{algorithm}[H]
+\small
+\begin{algorithmic}
+
+  \State \textbf{Step 6: Model Evaluation}
+  \State \hspace{1.2em}(a) Predict on unseen test data
+  \State \hspace{1.2em}(b) Compute Accuracy, Precision, Recall, F1-score
+  \State \hspace{1.2em}(c) Generate Confusion Matrix and ROC-AUC
+
+  \State \textbf{Step 7: Explainable AI Integration}
+  \State \hspace{1.2em}(a) Apply LIME for local explanation
+  \State \hspace{1.2em}(b) Identify influential features per prediction
+  \State \hspace{1.2em}(c) Generate human-readable explanation
+
+  \State \textbf{Step 8: Real-Time Deployment}
+  \State \hspace{1.2em}(a) Capture live network packets using Tshark
+  \State \hspace{1.2em}(b) Compute flow-based statistical features
+  \State \hspace{1.2em}(c) Convert features to BERT embedding
+  \State \hspace{1.2em}(d) Predict traffic label with confidence score
+  \State \hspace{1.2em}(e) Display classification and explanation
+
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+% -------------------------
+% End of Algorithms block
+% -------------------------
+\section{Data Flow Diagrams}
+\begin{frame}{Data flow diagrams}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{dfd.png}
+    \caption{Network Analysis Pipeline}
+    \label{fig:placeholder}
+
+\end{figure}
+\end{frame}
+
+
+%---------------------------------- Slide 1 ----------------------------------
+\section{Implementation}
+
+\begin{frame}{Implementation -- Tech Stack}
+\small
+\begin{itemize}
+
+\item \textbf{Language \& Framework:}
+Python, PyTorch, HuggingFace Transformers 
+
+\item \textbf{Model Architecture:}
+BERT Embeddings (CLS Token), Multi-Layer Perceptron (512-256 Hidden Layers), Batch Normalization, Dropout, Class-Weighted CrossEntropy Loss
+
+\item \textbf{Data \& Preprocessing:}
+UNSW-NB15, CIC-DoHBrw-2020, CICIDS2017 and NSL-KDD datasets, Wireshark Packet Capture, Label Encoding, StandardScaler, SMOTETomek (Imbalanced-Learn), Train-Test Split (Stratified)
+
+\item \textbf{Training Optimization:}
+AdamW Optimizer, Early Stopping, GPU Acceleration (CUDA), Loss Monitoring, Model Checkpointing
+
+\item \textbf{Evaluation \& Explainability:}
+Accuracy, Precision, Recall, F1-Score, Confusion Matrix (Seaborn), LIME (Local Interpretable Model-Agnostic Explanations)
+
+\item \textbf{Deployment \& Inference:}
+Real-time User Input Module, BERT-based Feature Embedding Pipeline, Attack  Prediction with Confidence Score
+
+
+
+\end{itemize}
+\end{frame}
+
+
+
+\section{Result}
+
+\begin{frame}{Results (1/10)}
+\begin{table}[h]
+\centering
+\caption{Performance Comparison Across Datasets}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Dataset} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} \\
+\hline
+CIC-DoHBrw-2020 & 0.9827 & 0.98   & 0.98   & 0.98   \\
+NSL-KDD         & 0.9893 & 0.9895 & 0.9893 & 0.9894 \\
+UNSW-NB15       & 0.9280 & 0.9294 & 0.9280 & 0.9279 \\
+CICIDS-2017     & 0.9919 & 0.8663 & 0.8747 & 0.8549 \\
+\hline
+\end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Results (2/10)}
+\begin{figure}
+
+    \centering
+    \includegraphics[width=0.5\linewidth]{22.jpeg}
+    \caption{Confusion matrix(CIC-DoHBrw-2020)}
+
+
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results (3/10)}
+\begin{figure}
+
+    \centering
+    \includegraphics[width=\linewidth]{ress.png}
+    \caption{LIME Explainability(CIC-DoHBrw-2020)}
+
+
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results(4/10)}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{NSL-KDD confu.png}
+    \caption{Confusion matrix(NSL-KDD Dataset)}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results(5/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{NSl-KDD precision.png}
+    \caption{Precision-Recall Curves(NSL-KDD Dataset)}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results(6/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{NSL-KDD prec-roc.png}
+    \caption{Training Loss Curve and ROC Curve(NSL-KDD Dataset)}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results(7/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{Confusion NB15.jpg}
+    \caption{Confusion Matrix(UNSW-NB15 Dataset)}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Results(8/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{NB-15 1 new.png}
+    \caption{Local Explaination for Class attack and Training loss(UNSW-NB15 Dataset)}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Results(9/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{CICIDS2017-confusion.jpg}
+    \caption{Confusion matrix(CICIDS-2017)}
+
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results(10/10)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{CICIDS2017 roc and prec.png}
+    \caption{Precision and ROC Curve(CICIDS-2017)}
+
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Testing (1/2)}
+\begin{figure}
+
+    \centering
+    \includegraphics[width=0.6\linewidth]{Testin 1.png}
+    \caption{F1 Score by Attack and Error Rate per Attack}
+
+
+\end{figure}
+\end{frame}
+
+\begin{frame}{Testing (2/2)}
+\begin{figure}
+
+    \centering
+    \includegraphics[width=0.5\linewidth]{model_comparison_radar_f1_score_NSL-KDD.png}
+    \caption{Radar Chart}
+
+
+\end{figure}
+\end{frame}
+
+\section{Comparison with Existing Works}
+
+% -------------------- FRAME 1 --------------------
+\begin{frame}{Comparison with Existing Works}
+\centering
+\scriptsize
+\begin{tabular}{|p{3cm}|p{2cm}|p{2cm}|}
+\hline
+\textbf{Paper} & \textbf{Method} & \textbf{Result} \\ \hline
+
+FlowTransformer &
+Transformer (BERT, GPT-2) &
+F1 up to 98\% \\ \hline
+
+Deep Learning IDS &
+sNDAE &
+$>$98\% accuracy \\ \hline
+
+GraphTunnel &
+GraphSAGE + CNN &
+99.78\% F1 \\ \hline
+
+DNS ML Detection &
+LightGBM &
+F1 up to 1.00 \\ \hline
+
+NLP + Explainability &
+BERT + MLP + LIME &
+97–99\% accuracy \\ \hline
+
+Echoes From the Void &
+BERT + Graph + SMOTE &
+99.47\% accuracy \\ \hline
+
+Hybrid DNS Defense &
+CNN + BiLSTM &
+99.12\% accuracy \\ \hline
+
+BERT + MLP IDS &
+SMOTE + BERT + MLP &
+99.3\% accuracy \\ \hline
+
+\textbf{NetBERT (Proposed)} &
+SMOTETomek + BERT + MLP + LIME &
+\textbf{Improved performance across datasets} \\ \hline
+
+
+\end{tabular}
+
+\end{frame}
+
+\section{Work Status}
+
+\begin{frame}{Work Status}
+\centering
+\small
+\begin{tabular}{|c|p{6cm}|c|}
+\hline
+\textbf{Timeline} & \textbf{Activities} & \textbf{Status} \\
+\hline
+
+Aug -- Sep & Literature survey on encrypted DNS intrusion detection and transformer-based IDS models & $\checkmark$ \\
+\hline
+
+Sep -- Oct & Dataset collection (multi-domain traffic datasets) and preprocessing & $\checkmark$ \\
+\hline
+
+Oct -- Nov & BERT model training for contextual feature embedding generation & $\checkmark$ \\
+\hline
+
+Nov -- Dec & Implementation of SMOTE–Tomek resampling and MLP classifier training & $\checkmark$ \\
+\hline
+
+Dec -- Jan & Integration of LIME-based explainability for model interpretation & $\checkmark$ \\
+\hline
+
+Jan -- Feb & Model evaluation on multiple datasets and performance analysis & $\checkmark$ \\
+\hline
+
+Feb -- Mar & Integration of real-time packet capture using tshark and pipeline unification & $\checkmark$ \\
+\hline
+
+\end{tabular}
+
+\end{frame}
+
+
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+\begin{itemize}
+
+    \item The system combines \textbf{BERT-based contextual embeddings} with a classical Multi-Layer Perceptron (MLP) classifier to enhance intrusion detection performance.
+
+    \item BERT embeddings capture complex behavioral patterns in both encrypted and unencrypted traffic, improving feature expressiveness beyond traditional numerical representations.
+
+    \item The application of \textbf{SMOTETomek} addresses class imbalance, significantly improving detection accuracy for minority attack categories.
+
+    \item A lightweight \textbf{MLP classifier} ensures efficient multi-class classification while maintaining high predictive performance.
+
+    \item \textbf{LIME-based explainability} enhances transparency by providing interpretable insights into model decisions, increasing trust in predictions.
+
+    \item The integration of a \textbf{real-time flow-based detection module using Tshark} validates the practical deployability of the framework in live network environments.
+
+    \item Overall, the framework presents a \textbf{scalable, interpretable, and hybrid AI-driven intrusion detection solution} suitable for contemporary network infrastructures.
+
+\end{itemize}
+
+\end{frame}
+
+\section{Publication}
+\begin{frame}{Publication}
+
+\begin{thebibliography}{00}
+
+\bibitem{}
+Dr. Jyothish K John, Rhihtika M Pradeep, Sreelakshmi P, Ron Binoy Mechery, Sreerag K, 
+``NetBERT:Transformer-Driven Robust Intrusion Detection Across Multi-Domain
+Network Traffic,'' 
+International Conference on Recent Trends in Artificial Intelligence, 2025.
+
+\bibitem{}
+Dr. Jyothish K John, Rhihtika M Pradeep, Sreelakshmi P, Ron Binoy Mechery, Sreerag K, 
+``NetBERT:Transformer-Driven Robust Intrusion Detection Across Multi-Domain
+Network Traffic,'' 
+2nd International Conference on Innovations in Engineering and Technology, 2026. (Under review)
+
+\end{thebibliography}
+
+\end{frame}
+
+\section{References}
+\begin{frame}{References (1/3)}
+\small
+\begin{thebibliography}{99}
+
+\bibitem{b1}A. Anand, “FlowTransformer: A Transformer Framework for Flow-Based Network Intrusion Detection Systems,” Elsevier, 2024.
+\bibitem{b2} Y. Yin et al., “Deep Autoencoder-Based Intrusion Detection System,” IEEE, 2022.
+
+\bibitem{b3} G. Gao, et al., "GraphTunnel: Robust DNS Tunnel Detection Based on DNS Recursive Resolution Graph," \textit{IEEE Transactions on Information Forensics and Security}, vol. 19, pp. 7705-7719, 2024.
+
+\bibitem{b4} N. Bykov and Y. Chernyshov, "Detecting DNS Tunnels Using Machine Learning," in \textit{Proc. 2024 IEEE Ural-Siberian Conf. Biomedical Eng., Radioelectron. Inf. Technol. (USBEREIT)}, pp. 92-94, 2024.
+
+\bibitem{b5} S. Mustafa and M. H. Saeed, "Empowering text classification with NLP and explainable AI for enhanced interpretability," \textit{Journal of Electrical Systems and Information Technology}, vol. 12, no. 81, 2025.
+
+\end{thebibliography}
+\end{frame}
+
+\begin{frame}{References (2/3)}
+\small
+\begin{thebibliography}{99}
+\setcounter{enumiv}{5} 
+
+\bibitem{b6} W. S. Alorainy, "Echoes From the Void: Detecting DNS Tunneling With Blackhole Features in Encrypted Scenarios With High Accuracy," \textit{IEEE Access}, vol. 13, pp. 138551-138567, 2025.
+
+\bibitem{b7} S. Ness, "Securing Networks Against Adversarial Domain Name System Tunneling Attacks Using Hybrid Neural Networks," \textit{IEEE Access}, vol. 13, pp. 46697-46709, 2025.
+
+
+\bibitem{b8} Zeeshan Ali et al. ``Empowering Network Security: BERT Transformer Learning Approach and MLP for Intrusion Detection in Imbalanced Network Traffic'' \emph{IEEE Access}, October 2024.
+ A. Ness, “Hybrid CNN-BiLSTM DNS Detection Framework,” Elsevier, 2023.
+
+\bibitem{b9}
+Canadian Institute for Cybersecurity (CIC),
+"CICIDS2017 Dataset," 2017. [Online]. Available: https://www.unb.ca/cic/datasets/ids-2017.html. [Accessed: Mar. 23, 2026].
+\bibitem{b10}
+UNSW-NB15 Dataset Paper, "A Comprehensive Dataset for Evaluating Modern Network Intrusion Detection Systems," 2022.
+
+\end{thebibliography}
+\end{frame}
+
+\begin{frame}{References (3/3)}
+\small
+\begin{thebibliography}{99}
+\setcounter{enumiv}{10} 
+
+\bibitem{b11}
+UCI Machine Learning Repository,
+"KDD Cup 1999 Data," 1999. [Online]. Available: http://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html. [Accessed: Mar. 23, 2026].
+\bibitem{b12}
+Dhoogla,
+"CIC-DoHBrw-2020 Dataset," Kaggle, 2021. [Online]. Available: https://www.kaggle.com/datasets/dhoogla/cicdohbrw2020. [Accessed: Mar. 23, 2026].
+
+\bibitem{b13}
+N. Tripathi \textit{et al.},
+``Flow-based network intrusion detection based on BERT masked language model,''
+\emph{Proceedings of the ACM Digital Library}, 2023.
+
+\bibitem{b14}
+T. Zhang and S. Bao,
+``A novel deep neural network model for computer network intrusion detection,''
+\emph{IEEE Access / IEEE Explore}, 2022.
+
+\bibitem{b15}
+F. Sayyad \textit{et al.},
+``IDS-INT: Intrusion detection system using transformer-based transfer learning,''
+\emph{ScienceDirect (Digital Communications and Networks)}, 2024.
+
+\bibitem{b16}
+A. Fernández \textit{et al.},
+``MLSTL-WSN: Machine learning-based intrusion detection using SMOTETomek in wireless sensor networks,''
+\emph{Neural Computing and Applications}, Springer, 2024.
+
+\end{thebibliography}
+\end{frame}
+
+
+
+
+\section{Contribution of Each Member}
+
+\begin{frame}{Contribution of Each Member}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\small
+\begin{tabular}{|p{3cm}|p{9.5cm}|}
+\hline
+\textbf{Member} & \textbf{Contributions} \\ \hline
+
+\textbf{Sreerag K} &
+Implemented the hybrid BERT + SMOTETomek + MLP intrusion detection pipeline on the CIC-DoH dataset, including preprocessing, evaluation, LIME-based explainability, and real-time detection using Tshark. Prepared presentation slides.
+\\ \hline
+
+\textbf{Ron Binoy Mechery} &
+Implemented the hybrid BERT + SMOTETomek + MLP intrusion detection pipeline on the NSL-KDD dataset, including preprocessing, evaluation, explainability, and real-time deployment. Prepared presentation slides.
+\\ \hline
+
+\textbf{Rhithika M Pradeep} &
+Implemented the hybrid BERT + SMOTETomek + MLP intrusion detection pipeline on the CICIDS2017 dataset, including preprocessing, evaluation, explainability, and real-time deployment. Prepared presentation slides.
+\\ \hline
+
+\textbf{Sreelakshmi P} &
+Implemented the hybrid BERT + SMOTETomek + MLP intrusion detection pipeline on the UNSW-NB15 dataset, including preprocessing, evaluation, explainability, and real-time deployment. Prepared presentation slides.
+\\ \hline
+
+\end{tabular}
+\end{table}
+
+\end{frame}
+
+
+\end{document}

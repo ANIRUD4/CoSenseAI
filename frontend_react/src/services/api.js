@@ -24,4 +24,13 @@ export const importModel = (modelId) => api.post(`/share/import/${modelId}`);
 export const executeAction = (data) => api.post('/act/', data);
 export const getActionMappings = () => api.get('/act/actions');
 
+// Speech
+export const transcribeSpeech = (audioBlob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    return api.post('/speech/transcribe', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+
 export default api;

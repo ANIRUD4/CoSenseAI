@@ -35,6 +35,10 @@ app.include_router(admin.router)
 def health():
     return {"status": "IntelShare running"}
 
+@app.get("/")
+def root():
+    return {"status": "IntelShare online", "version": "1.0.4"}
+
 # Serve static files from the React app
 # Ensure the React app is built (npm run build) before running the backend in production
 if os.path.exists("frontend_react/dist"):
