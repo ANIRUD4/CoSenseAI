@@ -56,7 +56,8 @@ pip install -r requirements.txt
 # 6. Build React Frontend
 echo "Step 6: Building React Frontend..."
 cd frontend_react
-npm install
+npm install --fetch-retry-maxtimeout=600000 --fetch-retries=5 --no-audit --no-fund || \
+npm install --registry=https://registry.npmjs.org/ --fetch-retry-maxtimeout=600000 --no-audit --no-fund
 npm run build
 cd ..
 
