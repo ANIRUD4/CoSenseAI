@@ -171,7 +171,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     return (
         <div className="relative group">
             {/* Camera Selector Dropdown (Visible on touch/hover) */}
-            {devices.length > 1 && (
+            {devices.length > 0 && (
                 <div className="absolute top-2 right-2 z-50 opacity-50 hover:opacity-100 focus-within:opacity-100 transition-opacity bg-black/50 p-2 rounded-lg backdrop-blur-md">
                     <select 
                         className="bg-transparent text-white text-xs outline-none cursor-pointer max-w-[150px] truncate"
