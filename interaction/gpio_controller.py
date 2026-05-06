@@ -2,9 +2,9 @@
 gpio_controller.py — Hardware status feedback for IntelShareAI (Raspberry Pi 5)
 
 Pin mapping (BCM numbering):
-    Red  LED  → GPIO 16   (Inference / error states)
-    Green LED → GPIO 20   (Learning / feedback states)
-    Buzzer    → GPIO 12   (Audio cues via PWM)
+    Red  LED  → GPIO 17
+    Green LED → GPIO 27
+    Buzzer    → GPIO 22
 
 States:
     boot()               → Both LEDs solid ON  (system starting up)
@@ -84,18 +84,14 @@ class _BuzzerHelper:
                 pass
 
     def _beep_once(self, duration: float):
-        if not self._bz:
+        if not self._hw_pin:
             time.sleep(duration)
             return
         try:
-            # If it's a passive buzzer, we need to toggle it fast
-            end_time = time.time() + duration
-            while time.time() < end_time:
-                self._bz.on()
-                time.sleep(0.001) # 1kHz-ish toggle
-                self._bz.off()
-                time.sleep(0.001)
-        except:
+            self._hw_pin.on()
+            time.sleep(duration)
+            self._hw_pin.off()
+        except Exception:
             pass
 
     def beep(self, count: int = 1, duration: float = 0.12, gap: float = 0.08):
