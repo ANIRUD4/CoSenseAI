@@ -2,7 +2,7 @@
 # scripts/autostart_kiosk.sh
 
 # Wait for backend to be healthy
-while ! curl -s http://localhost:8000/health > /dev/null; do
+while ! curl -s http://localhost:5173 > /dev/null; do
   echo "Waiting for IntelShare backend..."
   sleep 2
 done
