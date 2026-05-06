@@ -28,6 +28,9 @@ import threading
 import time
 
 # ── gpiozero import (graceful fallback for non-Pi environments) ──────────────
+_HW_AVAILABLE = False
+_INIT_ERROR = "None"
+
 try:
     # Pi 5 requires the lgpio factory — set it explicitly before any gpiozero import
     from gpiozero.pins.lgpio import LGPIOFactory
@@ -42,7 +45,8 @@ except Exception as e:
         from gpiozero import PWMLED, LED, ToneBuzzer
         _HW_AVAILABLE = True
     except (ImportError, Exception) as e2:
-        print(f"[GPIO] gpiozero unavailable ({e2}) — running in MOCK mode")
+        _INIT_ERROR = f"lgpio fail: {e} | gpiozero fail: {e2}"
+        print(f"[GPIO] gpiozero unavailable ({_INIT_ERROR}) — running in MOCK mode")
         _HW_AVAILABLE = False
 
 

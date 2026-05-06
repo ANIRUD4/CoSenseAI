@@ -62,11 +62,12 @@ def health():
 @app.get("/test_gpio")
 def test_gpio():
     # Force a beep and return the current hardware availability
-    from interaction.gpio_controller import _HW_AVAILABLE
+    from interaction.gpio_controller import _HW_AVAILABLE, _INIT_ERROR
     hw.ready() # triggers 1 long beep
     return {
         "status": "triggered ready sequence",
-        "hardware_available": _HW_AVAILABLE
+        "hardware_available": _HW_AVAILABLE,
+        "error_log": _INIT_ERROR
     }
 
 @app.get("/")
