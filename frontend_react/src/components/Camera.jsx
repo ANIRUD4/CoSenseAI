@@ -24,6 +24,12 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     }));
 
     useEffect(() => {
+        // Check if the browser considers this a secure context
+        if (!navigator.mediaDevices) {
+            alert("FATAL: navigator.mediaDevices is undefined! The browser thinks this is an insecure connection and is blocking the camera.");
+            return;
+        }
+
         // First get the list of devices
         navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
             const videoInputs = deviceInfos.filter(device => device.kind === 'videoinput');
@@ -203,7 +209,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 onTouchEnd={handleEnd}
             >
                 <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
-                    DEBUG: v4
+                    DEBUG: v5
                 </div>
             <video
                 ref={videoRef}
