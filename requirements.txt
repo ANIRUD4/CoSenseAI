@@ -6,7 +6,6 @@ scikit-learn
 opencv-python
 vosk
 sounddevice
-tflite-runtime
 python-dotenv
 boto3
 httpx[http2]

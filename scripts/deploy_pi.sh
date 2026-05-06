@@ -39,19 +39,28 @@ fi
 pip install torch torchvision || \
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# 4. Install Project Requirements
-echo "Step 4: Installing Project Requirements..."
+# 4. Install TFLite Runtime (Special handling for ARM64)
+echo "Step 4: Installing TFLite Runtime..."
+source venv/bin/activate
+# Try standard PyPI, then Google's repo, then the new package name
+pip install tflite-runtime || \
+pip install --extra-index-url https://google-coral.github.io/py-repo/ tflite-runtime || \
+pip install ai-edge-litert || \
+echo "WARNING: Could not install tflite-runtime. System will fall back to Simple CV mode for some tasks."
+
+# 5. Install Project Requirements
+echo "Step 5: Installing Project Requirements..."
 pip install -r requirements.txt
 
-# 5. Build React Frontend
-echo "Step 5: Building React Frontend..."
+# 6. Build React Frontend
+echo "Step 6: Building React Frontend..."
 cd frontend_react
 npm install
 npm run build
 cd ..
 
-# 6. Configure Systemd Service
-echo "Step 6: Registering Systemd Service..."
+# 7. Configure Systemd Service
+echo "Step 7: Registering Systemd Service..."
 # Note: This assumes the project is in /home/cyril/IntelShareAI
 # If you are in a different directory, edit scripts/intelshare.service first.
 sudo cp scripts/intelshare.service /etc/systemd/system/
@@ -59,8 +68,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable intelshare.service
 sudo systemctl restart intelshare.service
 
-# 7. Final Touches
-echo "Step 7: Finalizing Permissions..."
+# 8. Final Touches
+echo "Step 8: Finalizing Permissions..."
 chmod +x scripts/autostart_kiosk.sh
 
 echo ""
