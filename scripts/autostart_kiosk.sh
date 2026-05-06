@@ -47,4 +47,5 @@ chromium \
   --use-fake-ui-for-media-stream \
   --allow-insecure-localhost \
   --unsafely-treat-insecure-origin-as-secure=http://127.0.0.1:8000 \
+  --disable-features=VideoCaptureUseGpuMemoryBuffer \
   --app=http://127.0.0.1:8000/pi

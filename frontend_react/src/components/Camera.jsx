@@ -30,23 +30,10 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             return;
         }
 
-        // First get the list of devices
-        navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
-            const videoInputs = deviceInfos.filter(device => device.kind === 'videoinput');
-            setDevices(videoInputs);
-            if (videoInputs.length > 0) {
-                // Try to find a USB or Webcam device by default
-                const usbCam = videoInputs.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('webcam'));
-                setSelectedDeviceId(usbCam ? usbCam.deviceId : videoInputs[0].deviceId);
-            } else {
-                alert("DEBUG: 0 video devices found by browser.");
-                startCamera(null); // Force a fallback attempt
-            }
-        }).catch(err => {
-            console.error("Device enumeration failed", err);
-            alert("ENUM ERROR: " + err.message);
-            startCamera(null); // Force a fallback attempt
-        });
+        // Bypassing enumerateDevices() completely!
+        // The Pi 5 has so many hardware nodes that Chromium often deadlocks when trying to list them.
+        // We will just directly request the camera.
+        startCamera(null);
     }, []);
 
     useEffect(() => {
@@ -60,11 +47,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
         stopCamera(); // stop existing stream
         try {
             const constraints = {
-                video: {
-                    deviceId: { exact: deviceId },
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                }
+                video: deviceId ? { deviceId: { exact: deviceId } } : true
             };
             const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             setStream(mediaStream);
@@ -209,7 +192,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 onTouchEnd={handleEnd}
             >
                 <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
-                    DEBUG: v5
+                    DEBUG: v6
                 </div>
             <video
                 ref={videoRef}
