@@ -21,7 +21,14 @@ while ! curl -s http://localhost:8000/health > /dev/null; do
   fi
 done
 
-echo "Backend is up! Launching kiosk UI..."
+echo "Backend is up! Preparing camera and launching kiosk..."
+
+# WARNING: Linux only allows ONE app to use the webcam at a time.
+# If ffplay or libcamera was run earlier and is still lingering in the background, 
+# Chromium will silently fail to open the camera. We must kill them first.
+pkill -f ffplay || true
+pkill -f libcamera || true
+pkill -f chromium || true
 
 # Extra buffer for all routes and static files to be registered
 sleep 2
