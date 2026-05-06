@@ -29,71 +29,76 @@ import time
 
 # ── gpiozero import (graceful fallback for non-Pi environments) ──────────────
 _HW_AVAILABLE = False
-_INIT_ERROR = "None"
+_INIT_LOG = []
 
 try:
-    # Pi 5 requires the lgpio factory — set it explicitly before any gpiozero import
+    # Essential for Pi 5
     from gpiozero.pins.lgpio import LGPIOFactory
     from gpiozero import Device
     Device.pin_factory = LGPIOFactory()
-    from gpiozero import PWMLED, LED, ToneBuzzer
-    _HW_AVAILABLE = True
-    print("[GPIO] Using lgpio pin factory (Pi 5 compatible)")
+    _INIT_LOG.append("lgpio factory loaded")
 except Exception as e:
-    print(f"[GPIO] lgpio factory failed ({e}), trying default gpiozero...")
+    _INIT_LOG.append(f"lgpio factory fail: {e}")
+
+# Independent imports to prevent one failure from killing everything
+try:
+    from gpiozero import PWMLED
+    _INIT_LOG.append("PWMLED available")
+except ImportError:
+    PWMLED = None
+    _INIT_LOG.append("PWMLED missing")
+
+try:
+    from gpiozero import LED
+    _INIT_LOG.append("LED available")
+except ImportError:
+    LED = None
+    _INIT_LOG.append("LED missing")
+
+try:
     try:
-        from gpiozero import PWMLED, LED, ToneBuzzer
-        _HW_AVAILABLE = True
-    except (ImportError, Exception) as e2:
-        _INIT_ERROR = f"lgpio fail: {e} | gpiozero fail: {e2}"
-        print(f"[GPIO] gpiozero unavailable ({_INIT_ERROR}) — running in MOCK mode")
-        _HW_AVAILABLE = False
+        from gpiozero import ToneBuzzer as Buzzer
+    except ImportError:
+        from gpiozero import Buzzer
+    _INIT_LOG.append("Buzzer available")
+except ImportError:
+    Buzzer = None
+    _INIT_LOG.append("Buzzer missing")
 
+_HW_AVAILABLE = (PWMLED is not None) or (LED is not None) or (Buzzer is not None)
+_INIT_ERROR = " | ".join(_INIT_LOG)
 
-# ── Buzzer helper ────────────────────────────────────────────────────────────
-# gpiozero's Buzzer class drives a passive buzzer (binary on/off).
-# For richer tones we use ToneBuzzer when available; fall back silently.
+# -- Buzzer helper ────────────────────────────────────────────────────────────
 _BUZZER_PIN = 12
 _RED_PIN    = 16
 _GREEN_PIN  = 20
 
-
 class _BuzzerHelper:
-    """Thread-safe wrapper around a passive buzzer (active-low PWM)."""
-
     def __init__(self, pin):
         self._lock = threading.Lock()
-        if _HW_AVAILABLE:
+        self._bz = None
+        if Buzzer:
             try:
-                self._bz = ToneBuzzer(pin)
-            except Exception:
-                # Older gpiozero without ToneBuzzer — use basic Buzzer
-                try:
-                    from gpiozero import Buzzer as _Buzzer
-                    self._bz = _Buzzer(pin)
-                except Exception:
-                    self._bz = None
-        else:
-            self._bz = None
+                self._bz = Buzzer(pin)
+            except:
+                pass
 
     def _beep_once(self, duration: float):
-        """Play a single beep of `duration` seconds (blocking inside its own thread)."""
-        if self._bz is None:
-            print(f"[GPIO][MOCK] BEEP {duration:.2f}s")
+        if not self._bz:
             time.sleep(duration)
             return
         try:
-            self._bz.play()
-            time.sleep(duration)
-            self._bz.stop()
-        except AttributeError:
-            # Plain Buzzer (no .play / .stop)
-            try:
+            # Handle both ToneBuzzer (.play) and Buzzer (.on)
+            if hasattr(self._bz, 'on'):
                 self._bz.on()
                 time.sleep(duration)
                 self._bz.off()
-            except Exception:
-                pass
+            else:
+                self._bz.play()
+                time.sleep(duration)
+                self._bz.stop()
+        except:
+            pass
 
     def beep(self, count: int = 1, duration: float = 0.12, gap: float = 0.08):
         """Fire `count` beeps non-blocking in a daemon thread."""
