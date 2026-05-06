@@ -11,15 +11,19 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 from contextlib import asynccontextmanager
+from fastapi.responses import StreamingResponse
 from interaction.gpio_controller import hw
+from backend.camera import camera_stream
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup sequence
     hw.boot()
     hw.ready()
+    camera_stream.start()
     yield
     # Shutdown sequence
+    camera_stream.stop()
     hw.cleanup()
 
 app = FastAPI(title="IntelShare", lifespan=lifespan)
@@ -43,6 +47,13 @@ app.include_router(export_import.router)
 app.include_router(metrics.router)
 app.include_router(boost.router)
 app.include_router(admin.router)
+
+@app.get("/video_feed")
+def video_feed():
+    return StreamingResponse(
+        camera_stream.get_frame(),
+        media_type='multipart/x-mixed-replace; boundary=frame'
+    )
 
 @app.get("/health")
 def health():

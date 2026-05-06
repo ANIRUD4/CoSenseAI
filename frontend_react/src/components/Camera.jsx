@@ -1,20 +1,15 @@
-import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { Camera as CameraIcon } from 'lucide-react';
 
 const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
-    const videoRef = useRef(null);
+    const imgRef = useRef(null);
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
-    const [stream, setStream] = useState(null);
 
-    // BBox Drawing State
     const [isDrawing, setIsDrawing] = useState(false);
-    const [startPos, setStartPos] = useState(null);
-    const [currentPos, setCurrentPos] = useState(null);
-    const [bbox, setBbox] = useState(null); // {x, y, w, h} in %
-
-    const [devices, setDevices] = useState([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+    const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+    const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
+    const [bbox, setBbox] = useState(null);
 
     // Expose capture method to parents via ref
     useImperativeHandle(ref, () => ({
@@ -22,61 +17,6 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             captureFrame();
         }
     }));
-
-    useEffect(() => {
-        // Check if the browser considers this a secure context
-        if (!navigator.mediaDevices) {
-            alert("FATAL: navigator.mediaDevices is undefined! The browser thinks this is an insecure connection and is blocking the camera.");
-            return;
-        }
-
-        // Bypassing enumerateDevices() completely!
-        // The Pi 5 has so many hardware nodes that Chromium often deadlocks when trying to list them.
-        // We will just directly request the camera.
-        startCamera(null);
-    }, []);
-
-    useEffect(() => {
-        if (selectedDeviceId) {
-            startCamera(selectedDeviceId);
-        }
-        return () => stopCamera();
-    }, [selectedDeviceId]);
-
-    const startCamera = async (deviceId) => {
-        stopCamera(); // stop existing stream
-        try {
-            const constraints = {
-                video: deviceId ? { deviceId: { exact: deviceId } } : true
-            };
-            
-            // Wrap in a timeout to detect deadlocks
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("TIMEOUT: Browser is deadlocking on getUserMedia!")), 3000)
-            );
-            
-            const mediaStream = await Promise.race([
-                navigator.mediaDevices.getUserMedia(constraints),
-                timeoutPromise
-            ]);
-            
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
-            }
-        } catch (err) {
-            console.error("Error accessing camera:", err);
-            // Alert added so we can see the exact error on the kiosk screen!
-            alert("CAMERA ERROR: " + err.message + " (" + err.name + ")");
-        }
-    };
-
-    const stopCamera = () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
-        }
-    };
 
     const getPos = (e) => {
         const rect = containerRef.current.getBoundingClientRect();
@@ -106,13 +46,12 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
         if (!isDrawing) return;
         setIsDrawing(false);
 
-        // Finalize BBox
         const x = Math.min(startPos.x, currentPos.x);
         const y = Math.min(startPos.y, currentPos.y);
         const w = Math.abs(startPos.x - currentPos.x);
         const h = Math.abs(startPos.y - currentPos.y);
 
-        if (w > 0.05 && h > 0.05) { // Min size requirement
+        if (w > 0.05 && h > 0.05) {
             setBbox({ x, y, w, h });
         } else {
             setBbox(null);
@@ -120,7 +59,7 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
     };
 
     const captureFrame = () => {
-        if (!videoRef.current || !canvasRef.current || !containerRef.current) return;
+        if (!imgRef.current || !canvasRef.current || !containerRef.current) return;
 
         const cw = containerRef.current.clientWidth;
         const ch = containerRef.current.clientHeight;
@@ -132,12 +71,12 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
 
         const context = canvasRef.current.getContext('2d');
         
-        const vw = videoRef.current.videoWidth;
-        const vh = videoRef.current.videoHeight;
+        const vw = imgRef.current.naturalWidth;
+        const vh = imgRef.current.naturalHeight;
         
         if (!vw || !vh) {
-            // Fallback if video isn't ready
-            context.drawImage(videoRef.current, 0, 0, cw, ch);
+            // Fallback if image isn't loaded yet
+            context.drawImage(imgRef.current, 0, 0, cw, ch);
             const frame = canvasRef.current.toDataURL('image/jpeg');
             if (onCapture) {
                 onCapture(frame, bbox);
@@ -145,7 +84,6 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             return;
         }
 
-        // Emulate object-cover so bbox matches the captured image perfectly
         const cr = cw / ch;
         const vr = vw / vh;
 
@@ -162,35 +100,19 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
             sx = (vw - sWidth) / 2;
         }
 
-        context.drawImage(videoRef.current, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+        context.drawImage(imgRef.current, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
 
         const frame = canvasRef.current.toDataURL('image/jpeg');
 
         if (onCapture) {
-            // Pass frame and optional manual bbox
             onCapture(frame, bbox);
         }
     };
 
+    const streamUrl = "http://127.0.0.1:8000/video_feed";
+
     return (
         <div className="relative group">
-            {/* Camera Selector Dropdown (Visible on touch/hover) */}
-            {devices.length > 0 && (
-                <div className="absolute top-2 right-2 z-50 opacity-50 hover:opacity-100 focus-within:opacity-100 transition-opacity bg-black/50 p-2 rounded-lg backdrop-blur-md">
-                    <select 
-                        className="bg-transparent text-white text-xs outline-none cursor-pointer max-w-[150px] truncate"
-                        value={selectedDeviceId || ''}
-                        onChange={(e) => setSelectedDeviceId(e.target.value)}
-                    >
-                        {devices.map((device, idx) => (
-                            <option key={device.deviceId} value={device.deviceId} className="bg-slate-900">
-                                {device.label || `Camera ${idx + 1}`}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
             <div
                 ref={containerRef}
                 className="relative rounded-xl overflow-hidden shadow-lg bg-black aspect-video cursor-crosshair touch-none"
@@ -201,19 +123,22 @@ const Camera = forwardRef(({ onCapture, isActive = true }, ref) => {
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
             >
-                <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-50">
-                    DEBUG: v8
+                <div className="absolute top-0 left-0 bg-blue-600 text-white font-bold px-2 py-1 z-50">
+                    DEBUG: MJPEG v1
                 </div>
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
+            
+            <img
+                ref={imgRef}
+                crossOrigin="anonymous"
+                src={streamUrl}
+                alt="Camera Stream"
                 className="w-full h-full object-cover pointer-events-none"
+                onError={(e) => {
+                    console.error("Camera stream error. Is the backend running?");
+                }}
             />
             <canvas ref={canvasRef} width="640" height="480" className="hidden" />
 
-            {/* Manual BBox Overlay */}
             {(isDrawing || bbox) && (
                 <div
                     className="absolute border-2 border-accent border-dashed rounded-lg bg-accent/10 pointer-events-none z-10"
