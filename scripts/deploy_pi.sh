@@ -16,6 +16,21 @@ sudo apt install -y python3-venv python3-pip ffmpeg libopenblas-dev \
                     libtiff6 libxcb1 libx11-6 swig build-essential \
                     python3-dev liblgpio-dev
 
+# 1.5 Increase Swap Space (Fixes build bus errors)
+echo "Step 1.5: Optimizing System Memory (Swap)..."
+if [ -f /etc/dphys-swapfile ]; then
+    CURRENT_SWAP=$(free -m | grep Swap | awk '{print $2}')
+    if [ "$CURRENT_SWAP" -lt 2000 ]; then
+        echo "Increasing swap size to 2GB..."
+        sudo dphys-swapfile swapoff
+        sudo sed -i 's/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+        sudo dphys-swapfile setup
+        sudo dphys-swapfile swapon
+    fi
+else
+    echo "WARNING: /etc/dphys-swapfile not found. Skipping swap optimization."
+fi
+
 # 2. Setup Python Virtual Environment
 echo "Step 2: Setting up Python Virtual Environment..."
 if [ ! -d "venv" ]; then
@@ -58,6 +73,7 @@ echo "Step 6: Building React Frontend..."
 cd frontend_react
 npm install --fetch-retry-maxtimeout=600000 --fetch-retries=5 --no-audit --no-fund || \
 npm install --registry=https://registry.npmjs.org/ --fetch-retry-maxtimeout=600000 --no-audit --no-fund
+export NODE_OPTIONS="--max-old-space-size=2048"
 npm run build
 cd ..
 
