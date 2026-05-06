@@ -83,4 +83,6 @@ def read_root():
 
 # Serve the React build at /pi — matches Vite's base: '/pi' config
 if os.path.exists("frontend_react/dist"):
+    app.mount("/pi", StaticFiles(directory="frontend_react/dist", html=True), name="static")
+
 
