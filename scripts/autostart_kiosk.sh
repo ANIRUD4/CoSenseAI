@@ -15,4 +15,4 @@ sleep 2
 # --noerrdialogs: Hides error dialogs
 # --disable-infobars: Hides the "Chromium is not your default browser" bar
 # --app: Minimal UI
-chromium --kiosk --noerrdialogs --disable-infobars --app=http://localhost:8000
+chromium --kiosk --noerrdialogs --disable-infobars --app=http://localhost:5173
