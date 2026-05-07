@@ -261,207 +261,212 @@ const PiUnified = () => {
                 </button>
             </header>
 
-            {/* ── Camera ──────────────────────────────────────────────── */}
-            <div className="relative flex-1 bg-black overflow-hidden">
-                {/* Camera always active so it streams; we drive capture() manually */}
-                <Camera
-                    ref={cameraRef}
-                    onCapture={handleCameraCapture}
-                    isActive={false}  // hide Camera's own shutter button; we have our own
-                />
+            {/* ── Main Content Area (Side-by-Side Landscape) ─────────────── */}
+            <div className="flex-1 flex flex-row min-h-0">
+                
+                {/* ── Camera (Left side) ──────────────────────────────────── */}
+                <div className="relative flex-1 bg-black overflow-hidden">
+                    {/* Camera always active so it streams; we drive capture() manually */}
+                    <Camera
+                        ref={cameraRef}
+                        onCapture={handleCameraCapture}
+                        isActive={false}  // hide Camera's own shutter button; we have our own
+                    />
 
-                {/* Mode indicator */}
-                {mode === 'infer' && !pendingResult && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded-full pointer-events-none">
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Infer Mode</span>
-                    </div>
-                )}
+                    {/* Mode indicator */}
+                    {mode === 'infer' && !pendingResult && (
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded-full pointer-events-none">
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Infer Mode</span>
+                        </div>
+                    )}
 
-                {/* Loading spinner */}
-                {loading && (
-                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20">
-                        <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-300 mt-2 animate-pulse">
-                            {mode === 'learn' ? 'Teaching…' : 'Processing…'}
-                        </p>
-                    </div>
-                )}
+                    {/* Loading spinner */}
+                    {loading && (
+                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20">
+                            <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-300 mt-2 animate-pulse">
+                                {mode === 'learn' ? 'Teaching…' : 'Processing…'}
+                            </p>
+                        </div>
+                    )}
 
-                {/* Toast overlays */}
-                {success && (
-                    <div className="absolute top-2 left-2 right-2 bg-emerald-700/90 backdrop-blur p-2 rounded-xl
-                                    text-xs font-bold flex items-center gap-2 z-30 shadow-xl animate-slideDown">
-                        <Check className="w-4 h-4" /> {success}
-                    </div>
-                )}
-                {error && (
-                    <div className="absolute top-2 left-2 right-2 bg-red-700/90 backdrop-blur p-2 rounded-xl
-                                    text-xs font-bold flex items-center gap-2 z-30 shadow-xl">
-                        ⚠ {error}
-                        <button onClick={() => setError(null)} className="ml-auto"><X className="w-3 h-3" /></button>
-                    </div>
-                )}
+                    {/* Toast overlays */}
+                    {success && (
+                        <div className="absolute top-2 left-2 right-2 bg-emerald-700/90 backdrop-blur p-2 rounded-xl
+                                        text-xs font-bold flex items-center gap-2 z-30 shadow-xl animate-slideDown">
+                            <Check className="w-4 h-4" /> {success}
+                        </div>
+                    )}
+                    {error && (
+                        <div className="absolute top-2 left-2 right-2 bg-red-700/90 backdrop-blur p-2 rounded-xl
+                                        text-xs font-bold flex items-center gap-2 z-30 shadow-xl">
+                            ⚠ {error}
+                            <button onClick={() => setError(null)} className="ml-auto"><X className="w-3 h-3" /></button>
+                        </div>
+                    )}
 
-                {/* ── Confirmation modal ────────────────────────────── */}
-                {pendingResult && (
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-40 px-4">
-                        <div className="w-full max-w-xs bg-gray-900 rounded-2xl p-4 shadow-2xl border border-gray-700">
-                            {!showCorrection ? (
-                                <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
-                                        {pendingResult.decision === 'confident' ? 'Recognised' : 'Status'}
-                                    </p>
-                                    {pendingResult.decision !== 'confident' && pendingResult.message && (
-                                        <h3 className="text-sm font-bold text-yellow-400 mb-1">{pendingResult.message}</h3>
-                                    )}
-                                    <h2 className={`text-3xl font-black truncate ${pendingResult.decision === 'confident' ? 'text-emerald-400' : 'text-gray-300'}`}>
-                                        {top?.label ?? 'Unknown'}
-                                    </h2>
-                                    {top && (
-                                        <div className="mt-1 mb-3 flex items-center gap-2">
-                                            <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${confPct}%` }} />
-                                            </div>
-                                            <span className="text-[10px] font-black text-emerald-400">{confPct}%</span>
-                                        </div>
-                                    )}
-                                    {top?.action && (
-                                        <p className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded-lg mb-3 font-medium">
-                                            ⚡ {top.action}
+                    {/* ── Confirmation modal ────────────────────────────── */}
+                    {pendingResult && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-40 px-4 overflow-y-auto">
+                            <div className="w-full max-w-sm bg-gray-900 rounded-2xl p-4 shadow-2xl border border-gray-700 my-4">
+                                {!showCorrection ? (
+                                    <>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
+                                            {pendingResult.decision === 'confident' ? 'Recognised' : 'Status'}
                                         </p>
-                                    )}
-                                    <div className="flex gap-2">
-                                        {top && (
-                                            <button onClick={confirmResult}
-                                                className="flex-1 bg-emerald-600 active:scale-95 transition-transform rounded-xl py-3 font-black flex items-center justify-center gap-2 text-sm">
-                                                <ThumbsUp className="w-4 h-4" /> Yes
-                                            </button>
+                                        {pendingResult.decision !== 'confident' && pendingResult.message && (
+                                            <h3 className="text-sm font-bold text-yellow-400 mb-1">{pendingResult.message}</h3>
                                         )}
-                                        <button onClick={() => setShowCorrection(true)}
-                                            className="flex-1 bg-red-600/20 border border-red-600/30 active:scale-95 transition-transform rounded-xl py-3 font-black flex items-center justify-center gap-2 text-sm text-red-400">
-                                            {top ? <><ThumbsDown className="w-4 h-4" /> Wrong</> : <><Search className="w-4 h-4" /> Provide Label</>}
+                                        <h2 className={`text-3xl font-black truncate ${pendingResult.decision === 'confident' ? 'text-emerald-400' : 'text-gray-300'}`}>
+                                            {top?.label ?? 'Unknown'}
+                                        </h2>
+                                        {top && (
+                                            <div className="mt-1 mb-3 flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${confPct}%` }} />
+                                                </div>
+                                                <span className="text-[10px] font-black text-emerald-400">{confPct}%</span>
+                                            </div>
+                                        )}
+                                        {top?.action && (
+                                            <p className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded-lg mb-3 font-medium">
+                                                ⚡ {top.action}
+                                            </p>
+                                        )}
+                                        <div className="flex gap-2">
+                                            {top && (
+                                                <button onClick={confirmResult}
+                                                    className="flex-1 bg-emerald-600 active:scale-95 transition-transform rounded-xl py-3 font-black flex items-center justify-center gap-2 text-sm">
+                                                    <ThumbsUp className="w-4 h-4" /> Yes
+                                                </button>
+                                            )}
+                                            <button onClick={() => setShowCorrection(true)}
+                                                className="flex-1 bg-red-600/20 border border-red-600/30 active:scale-95 transition-transform rounded-xl py-3 font-black flex items-center justify-center gap-2 text-sm text-red-400">
+                                                {top ? <><ThumbsDown className="w-4 h-4" /> Wrong</> : <><Search className="w-4 h-4" /> Provide Label</>}
+                                            </button>
+                                        </div>
+                                        <button onClick={dismissModal} className="w-full mt-2 py-2 text-[10px] text-gray-600 font-bold uppercase">
+                                            Dismiss
                                         </button>
-                                    </div>
-                                    <button onClick={dismissModal} className="w-full mt-2 py-2 text-[10px] text-gray-600 font-bold uppercase">
-                                        Dismiss
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Correct label</p>
+                                        <div className="flex gap-2 mb-3">
+                                            <input
+                                                type="text"
+                                                value={correctLabel}
+                                                onChange={e => setCorrectLabel(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && submitCorrection()}
+                                                placeholder="Enter correct label…"
+                                                className="flex-1 min-w-0 bg-gray-800 border border-gray-600 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                                                autoFocus
+                                            />
+                                            <button onClick={() => startListening('correction')}
+                                                className={`w-11 h-11 flex items-center justify-center rounded-xl shrink-0 ${isListening === 'correction' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
+                                                <Mic className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={submitCorrection}
+                                                className="flex-1 bg-blue-600 active:scale-95 transition-transform rounded-xl py-3 font-black text-sm">
+                                                Update Model
+                                            </button>
+                                            <button onClick={() => setShowCorrection(false)}
+                                                className="w-11 bg-gray-700 rounded-xl flex items-center justify-center shrink-0">
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Action output banner ─────────────────────────── */}
+                    {actionOutput && !pendingResult && (
+                        <div className="absolute bottom-2 left-2 right-2 bg-blue-800/90 backdrop-blur px-3 py-2 rounded-xl
+                                        flex items-center gap-2 z-30 shadow-xl">
+                            <Zap className="w-4 h-4 text-yellow-300 shrink-0" />
+                            <p className="text-sm font-bold flex-1 truncate">{actionOutput}</p>
+                            <button onClick={() => setActionOutput(null)}><X className="w-3 h-3 text-gray-400" /></button>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Side control strip (Right side) ────────────────────── */}
+                <div className="w-40 bg-gray-900 border-l border-gray-800 p-2 shrink-0 flex flex-col overflow-y-auto">
+                    {mode === 'learn' ? (
+                        <div className="flex flex-col h-full">
+                            {/* Inputs section */}
+                            <div className="flex flex-col gap-1.5 mb-2">
+                                {/* Label row */}
+                                <div className="flex gap-1">
+                                    <input
+                                        id="pi-label" type="text" value={label}
+                                        onChange={e => setLabel(e.target.value)}
+                                        placeholder="Label (req)…"
+                                        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-500 font-medium"
+                                    />
+                                    <button onClick={() => startListening('label')}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'label' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
+                                        <Mic className="w-4 h-4" />
                                     </button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Correct label</p>
-                                    <div className="flex gap-2 mb-3">
-                                        <input
-                                            type="text"
-                                            value={correctLabel}
-                                            onChange={e => setCorrectLabel(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && submitCorrection()}
-                                            placeholder="Enter correct label…"
-                                            className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
-                                            autoFocus
-                                        />
-                                        <button onClick={() => startListening('correction')}
-                                            className={`w-11 h-11 flex items-center justify-center rounded-xl ${isListening === 'correction' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
-                                            <Mic className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={submitCorrection}
-                                            className="flex-1 bg-blue-600 active:scale-95 transition-transform rounded-xl py-3 font-black text-sm">
-                                            Update Model
-                                        </button>
-                                        <button onClick={() => setShowCorrection(false)}
-                                            className="w-11 bg-gray-700 rounded-xl flex items-center justify-center">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Action output banner ─────────────────────────── */}
-                {actionOutput && !pendingResult && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-blue-800/90 backdrop-blur px-3 py-2 rounded-xl
-                                    flex items-center gap-2 z-30 shadow-xl">
-                        <Zap className="w-4 h-4 text-yellow-300 shrink-0" />
-                        <p className="text-sm font-bold flex-1">{actionOutput}</p>
-                        <button onClick={() => setActionOutput(null)}><X className="w-3 h-3 text-gray-400" /></button>
-                    </div>
-                )}
-            </div>
-
-            {/* ── Bottom control strip ─────────────────────────────── */}
-            <div className="bg-gray-900 border-t border-gray-800 px-2 py-1.5 shrink-0">
-                {mode === 'learn' ? (
-                    /* ── Compact landscape layout: inputs left | shutter right ── */
-                    <div className="flex gap-2 items-stretch">
-                        {/* Left: two inputs stacked */}
-                        <div className="flex-1 flex flex-col gap-1 min-w-0">
-                            {/* Label row */}
-                            <div className="flex gap-1">
-                                <input
-                                    id="pi-label" type="text" value={label}
-                                    onChange={e => setLabel(e.target.value)}
-                                    placeholder="Label (required)…"
-                                    className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 font-medium"
-                                />
-                                <button onClick={() => startListening('label')}
-                                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'label' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
-                                    <Mic className="w-4 h-4" />
-                                </button>
-                            </div>
-                            {/* Action row */}
-                            <div className="flex gap-1">
-                                <input
-                                    type="text" value={action}
-                                    onChange={e => setAction(e.target.value)}
-                                    placeholder="Action (optional)…"
-                                    className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 font-medium"
-                                />
-                                <button onClick={() => startListening('action')}
-                                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'action' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
-                                    <Mic className="w-4 h-4" />
-                                </button>
-                            </div>
-                            {/* Progress bar — only when captures > 0 */}
-                            {learnCount > 0 && (
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-300 ${learnCount >= RECOMMENDED_CAPTURES ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                            style={{ width: `${Math.min(100, (learnCount / RECOMMENDED_CAPTURES) * 100)}%` }}
-                                        />
-                                    </div>
-                                    <span className={`text-[9px] font-black shrink-0 ${learnCount >= RECOMMENDED_CAPTURES ? 'text-emerald-400' : 'text-blue-300'}`}>
-                                        {learnCount >= RECOMMENDED_CAPTURES ? `✓ ${learnCount}` : `${learnCount}/${RECOMMENDED_CAPTURES}`}
-                                    </span>
                                 </div>
-                            )}
-                        </div>
+                                {/* Action row */}
+                                <div className="flex gap-1">
+                                    <input
+                                        type="text" value={action}
+                                        onChange={e => setAction(e.target.value)}
+                                        placeholder="Action (opt)…"
+                                        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-500 font-medium"
+                                    />
+                                    <button onClick={() => startListening('action')}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'action' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
+                                        <Mic className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                {/* Progress bar */}
+                                {learnCount > 0 && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-300 ${learnCount >= RECOMMENDED_CAPTURES ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                                style={{ width: `${Math.min(100, (learnCount / RECOMMENDED_CAPTURES) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <span className={`text-[10px] font-black shrink-0 ${learnCount >= RECOMMENDED_CAPTURES ? 'text-emerald-400' : 'text-blue-300'}`}>
+                                            {learnCount >= RECOMMENDED_CAPTURES ? `✓ ${learnCount}` : `${learnCount}/${RECOMMENDED_CAPTURES}`}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Right: shutter button */}
-                        <button
-                            onClick={triggerLearnCapture} disabled={loading}
-                            className="w-16 flex flex-col items-center justify-center gap-0.5 rounded-xl bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg shrink-0"
-                        >
-                            <Circle className="w-6 h-6 text-gray-900 fill-gray-900" />
-                            <span className="text-gray-900 font-black text-[8px] uppercase tracking-widest leading-none">
-                                {loading ? 'Wait' : `SNAP${learnCount > 0 ? ` ${learnCount}` : ''}`}
-                            </span>
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex gap-2">
-                        <button onClick={triggerInferCapture} disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
-                            <Circle className="w-5 h-5 text-gray-900 fill-gray-900" />
-                            <span className="text-gray-900 font-black text-sm uppercase tracking-widest">
-                                {loading ? 'Scanning…' : 'Capture & Identify'}
-                            </span>
-                        </button>
-                    </div>
-                )}
+                            {/* Shutter button section */}
+                            <div className="mt-auto pt-2">
+                                <button
+                                    onClick={triggerLearnCapture} disabled={loading}
+                                    className="w-full flex flex-col items-center justify-center py-4 rounded-xl bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg shrink-0"
+                                >
+                                    <Circle className="w-8 h-8 text-gray-900 fill-gray-900 mb-1" />
+                                    <span className="text-gray-900 font-black text-[10px] uppercase tracking-widest leading-none text-center">
+                                        {loading ? 'Wait' : `SNAP\n${learnCount > 0 ? `(${learnCount})` : ''}`}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full">
+                            <button onClick={triggerInferCapture} disabled={loading}
+                                className="w-full flex flex-col items-center justify-center gap-2 py-6 rounded-2xl bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
+                                <Circle className="w-8 h-8 text-gray-900 fill-gray-900" />
+                                <span className="text-gray-900 font-black text-[10px] uppercase tracking-widest text-center leading-tight">
+                                    {loading ? 'Scanning…' : 'Capture &\nIdentify'}
+                                </span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <style dangerouslySetInnerHTML={{
