@@ -14,6 +14,10 @@ Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
 Environment=HOME=/home/cyril
 
+# Force lgpio to use gpiochip4 on Pi 5 (gpiochip0 is the RP1 bridge, may vary)
+# Leave blank to auto-detect; set to 4 if GPIO pins are not responding
+# Environment=LGPIO_CHIP=4
+
 WorkingDirectory=/home/cyril/IntelShareAI
 ExecStart=/home/cyril/IntelShareAI/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Restart=always

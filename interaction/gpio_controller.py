@@ -33,14 +33,27 @@ _LGPIO_OK     = False   # True only when LGPIOFactory.init() actually succeeded
 _INIT_LOG = []
 
 try:
-    # Essential for Pi 5 — must set pin_factory BEFORE importing devices
+    # Essential for Pi 5 — must set pin_factory BEFORE importing devices.
+    # Pi 5 uses gpiochip4 (RP1 bridge); Pi 3/4 uses gpiochip0.
+    # We try chip 4 first, then fall back to chip 0 for older boards.
     from gpiozero.pins.lgpio import LGPIOFactory
     from gpiozero import Device
-    Device.pin_factory = LGPIOFactory()
-    _LGPIO_OK = True
-    _INIT_LOG.append("lgpio factory loaded")
+    _chip_used = None
+    for _chip in (4, 0):   # Pi 5 → chip 4; Pi 3/4 → chip 0
+        try:
+            Device.pin_factory = LGPIOFactory(chip=_chip)
+            _chip_used = _chip
+            break
+        except Exception as _e:
+            _INIT_LOG.append(f"lgpio chip{_chip} fail: {_e}")
+    if _chip_used is not None:
+        _LGPIO_OK = True
+        _INIT_LOG.append(f"lgpio factory loaded (gpiochip{_chip_used})")
+        print(f"[GPIO] lgpio factory initialised on gpiochip{_chip_used}")
+    else:
+        _INIT_LOG.append("lgpio factory: all chips failed")
 except Exception as e:
-    _INIT_LOG.append(f"lgpio factory fail: {e}")
+    _INIT_LOG.append(f"lgpio import fail: {e}")
 
 # Independent imports to prevent one failure from killing everything
 try:
@@ -80,8 +93,10 @@ class _BuzzerHelper:
         if DigitalOutputDevice:
             try:
                 self._hw_pin = DigitalOutputDevice(pin)
-            except:
-                pass
+                print(f"[GPIO] Buzzer pin {pin} opened OK")
+            except Exception as e:
+                print(f"[GPIO] Buzzer pin {pin} FAILED: {e}")
+                self._hw_pin = None
 
     def _beep_once(self, duration: float):
         if not self._hw_pin:
@@ -91,8 +106,8 @@ class _BuzzerHelper:
             self._hw_pin.on()
             time.sleep(duration)
             self._hw_pin.off()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[GPIO] Buzzer beep error: {e}")
 
     def beep(self, count: int = 1, duration: float = 0.12, gap: float = 0.08):
         """Fire `count` beeps non-blocking in a daemon thread."""

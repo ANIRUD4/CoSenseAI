@@ -17,10 +17,14 @@ from backend.camera import camera_stream
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup sequence
+    import asyncio
+    # Startup sequence: boot → brief ready state → inference mode
     hw.boot()
-    hw.ready()
+    await asyncio.sleep(1.5)   # hold boot state (both LEDs) for 1.5 s
+    hw.ready()                 # Red solid + 1 long beep
     camera_stream.start()
+    await asyncio.sleep(2.0)   # hold ready state so the beep is audible
+    hw.set_infer_mode()        # → Red slow-blink: system running normally
     yield
     # Shutdown sequence
     camera_stream.stop()

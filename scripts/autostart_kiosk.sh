@@ -2,16 +2,21 @@
 # scripts/autostart_kiosk.sh
 # Demo-ready kiosk launcher for IntelShareAI on Raspberry Pi 5
 
-# Disable screen blanking / power saving
+# ── Log file (helpful for SSH debugging) ────────────────────────────────────
+LOG_FILE="/tmp/intelshare_kiosk.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "=== Kiosk autostart: $(date) ==="
+
+# ── Disable screen blanking / power saving ───────────────────────────────────
 xset s off
 xset -dpms
 xset s noblank
 
-# Wait for the backend (FastAPI on port 8000) to become healthy
+# ── Wait for the backend (FastAPI on port 8000) to become healthy ────────────
 echo "Waiting for IntelShare backend to start..."
-MAX_WAIT=60
+MAX_WAIT=90
 WAITED=0
-while ! curl -s http://localhost:8000/health > /dev/null; do
+while ! curl -s http://localhost:8000/health > /dev/null 2>&1; do
   echo "  Still waiting... (${WAITED}s elapsed)"
   sleep 2
   WAITED=$((WAITED + 2))
@@ -21,19 +26,35 @@ while ! curl -s http://localhost:8000/health > /dev/null; do
   fi
 done
 
-echo "Backend is up! Preparing camera and launching kiosk..."
+echo "Backend is up after ${WAITED}s!"
 
-# WARNING: Linux only allows ONE app to use the webcam at a time.
-# If ffplay or libcamera was run earlier and is still lingering in the background, 
-# Chromium will silently fail to open the camera. We must kill them first.
-pkill -f ffplay || true
+# ── Verify GPIO/hardware status ──────────────────────────────────────────────
+echo "Checking hardware (GPIO) status..."
+HW_STATUS=$(curl -s http://localhost:8000/test_gpio 2>/dev/null)
+echo "  Hardware status: $HW_STATUS"
+
+# Extract hardware_available field
+HW_AVAILABLE=$(echo "$HW_STATUS" | grep -o '"hardware_available": *[a-z]*' | grep -o '[a-z]*$')
+
+if [ "$HW_AVAILABLE" = "true" ]; then
+  echo "  ✓ GPIO hardware is ACTIVE — LEDs and buzzer should be firing."
+else
+  echo "  ✗ GPIO hardware is in MOCK mode — check service logs!"
+  echo "    Run: sudo journalctl -u intelshare.service -n 50 --no-pager"
+  echo "    Also check: groups \$(whoami) | grep gpio"
+fi
+
+# ── Kill any lingering camera/display processes ───────────────────────────────
+# Linux only allows ONE app to use the webcam at a time.
+pkill -f ffplay   || true
 pkill -f libcamera || true
-pkill -f chromium || true
+pkill -f chromium  || true
 
-# Extra buffer for all routes and static files to be registered
+# ── Extra buffer for all routes and static files to be registered ─────────────
 sleep 2
 
-# Launch Chromium pointing to the production UI served by FastAPI
+# ── Launch Chromium pointing to the production UI served by FastAPI ───────────
+echo "Launching Chromium kiosk at http://127.0.0.1:8000/pi ..."
 chromium \
   --kiosk \
   --noerrdialogs \
