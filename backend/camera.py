@@ -38,8 +38,8 @@ class CameraStream:
 
             success, image = self.video.read()
             if success:
-                # Rotate 90 degrees counter-clockwise to align with case
-                image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                # Rotate 90 degrees clockwise to match hardware tilt
+                image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
                 
                 # Encode as JPEG
                 ret, jpeg = cv2.imencode('.jpg', image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
@@ -68,7 +68,8 @@ class CameraStream:
             if frame is None:
                 # Provide a blank placeholder if camera isn't ready
                 # This prevents the stream from crashing instantly
-                blank = cv2.imencode('.jpg', cv2.Mat(480, 640, cv2.CV_8UC3, (0, 0, 0)))[1].tobytes()
+                # Rotated dimension: 480 width, 640 height
+                blank = cv2.imencode('.jpg', cv2.Mat(640, 480, cv2.CV_8UC3, (0, 0, 0)))[1].tobytes()
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + blank + b'\r\n')
                 time.sleep(0.1)
