@@ -29,33 +29,43 @@ import time
 
 # ── gpiozero import (graceful fallback for non-Pi environments) ──────────────
 _HW_AVAILABLE = False
+_LGPIO_OK     = False   # True only when LGPIOFactory.init() actually succeeded
 _INIT_LOG = []
 
 try:
-    # Essential for Pi 5
+    # Essential for Pi 5 — must set pin_factory BEFORE importing devices
     from gpiozero.pins.lgpio import LGPIOFactory
     from gpiozero import Device
     Device.pin_factory = LGPIOFactory()
+    _LGPIO_OK = True
     _INIT_LOG.append("lgpio factory loaded")
 except Exception as e:
     _INIT_LOG.append(f"lgpio factory fail: {e}")
 
 # Independent imports to prevent one failure from killing everything
 try:
-    from gpiozero import PWMLED
-    _INIT_LOG.append("PWMLED available")
+    # LED is a subclass of DigitalOutputDevice that adds .blink().
+    # CRITICAL: DigitalOutputDevice does NOT have .blink() — using it for LEDs
+    # causes a silent AttributeError on every animated state transition.
+    from gpiozero import LED
+    _INIT_LOG.append("LED available")
 except ImportError:
-    PWMLED = None
-    _INIT_LOG.append("PWMLED missing")
+    LED = None
+    _INIT_LOG.append("LED missing")
 
 try:
+    # Buzzer only uses .on()/.off() so DigitalOutputDevice is correct here.
     from gpiozero import DigitalOutputDevice
     _INIT_LOG.append("DigitalOutputDevice available")
 except ImportError:
     DigitalOutputDevice = None
     _INIT_LOG.append("DigitalOutputDevice missing")
 
-_HW_AVAILABLE = (DigitalOutputDevice is not None)
+# Hardware is only truly available when BOTH lgpio initialised AND the LED
+# class was imported.  Importing LED is not enough — if LGPIOFactory failed
+# (e.g. /dev/gpiochip0 is locked or wrong user), every pin.on() call will
+# throw at runtime, giving a false "HARDWARE mode" impression.
+_HW_AVAILABLE = _LGPIO_OK and (LED is not None)
 _INIT_ERROR = " | ".join(_INIT_LOG)
 
 # -- Buzzer helper ────────────────────────────────────────────────────────────
@@ -111,12 +121,14 @@ class GPIOController:
         self._lock = threading.Lock()
         self._timeout_timer: threading.Timer | None = None
 
-        # LEDs
+        # LEDs — use gpiozero.LED (NOT DigitalOutputDevice).
+        # LED is a subclass that adds .blink(); DigitalOutputDevice lacks it,
+        # causing a silent AttributeError on every animated state call.
         if _HW_AVAILABLE:
             try:
-                # Use DigitalOutputDevice for maximum raw power
-                self._red   = DigitalOutputDevice(_RED_PIN)
-                self._green = DigitalOutputDevice(_GREEN_PIN)
+                self._red   = LED(_RED_PIN)
+                self._green = LED(_GREEN_PIN)
+                _INIT_LOG.append("LED pins opened OK")
             except Exception as e:
                 print(f"[GPIO] Hardware init failed: {e} — running in mock mode.")
                 self._red   = None
@@ -125,7 +137,7 @@ class GPIOController:
             self._red   = None
             self._green = None
 
-        # Buzzer
+        # Buzzer — only uses .on()/.off(), so DigitalOutputDevice is fine
         self._buzzer = _BuzzerHelper(_BUZZER_PIN)
 
         # Initial state: everything off
@@ -169,7 +181,7 @@ class GPIOController:
             self._cancel_timeout()
             self._stop_leds()
             if self._red:
-                self._red.value = 1.0      # PWMLED full brightness
+                self._red.on()   # LED.on() — was incorrectly using .value=1.0 (PWMLED style)
             if self._green:
                 self._green.on()
             print("[GPIO] STATE -> boot (both LEDs ON)")
@@ -199,13 +211,12 @@ class GPIOController:
         self._buzzer.beep(count=3, duration=0.1, gap=0.1)
 
     def set_infer_mode(self):
-        """Inference mode: Red LED breathing (PWMLED.pulse), Green OFF."""
+        """Inference mode: Red LED slow-blinks (1 s on / 1 s off), Green OFF."""
         with self._lock:
             self._cancel_timeout()
             self._stop_leds()
             if self._red:
-                # Standard LED doesn't pulse — blink slowly as fallback
-                self._red.blink(on_time=1.0, off_time=1.0)
+                self._red.blink(on_time=1.0, off_time=1.0)  # LED.blink() — works correctly
             if self._green:
                 self._green.off()
             print("[GPIO] STATE -> infer_mode (Red blinking)")
@@ -251,17 +262,20 @@ class GPIOController:
     def set_success(self):
         """
         Success state:
-        - Returns to Red breathing (same as infer_mode).
+        - Red LED slow-blinks (pulse not available on DigitalOutputDevice).
+        - Green OFF.
         - 1 medium beep.
         """
         with self._lock:
             self._cancel_timeout()
             self._stop_leds()
             if self._red:
-                self._red.pulse(fade_in_time=1.0, fade_out_time=1.0)
+                # DigitalOutputDevice has no .pulse() — use slow blink instead.
+                # If PWMLED is ever wired, swap this for self._red.pulse(...)
+                self._red.blink(on_time=1.0, off_time=1.0)
             if self._green:
                 self._green.off()
-            print("[GPIO] STATE -> success (Red breathing, 1 medium beep)")
+            print("[GPIO] STATE -> success (Red slow-blink, 1 medium beep)")
         self._buzzer.beep(count=1, duration=0.25, gap=0)
 
     def set_timeout_error(self):

@@ -1,10 +1,19 @@
 [Unit]
 Description=IntelShareAI Backend Service
-After=network.target
+After=network.target sound.target
 
 [Service]
 Type=simple
-User=root
+User=cyril
+Group=cyril
+# Give access to audio, GPIO, video, and I2C hardware
+SupplementaryGroups=audio gpio video i2c dialout
+
+# Required for PulseAudio / ALSA to resolve the per-user audio socket
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+Environment=HOME=/home/cyril
+
 WorkingDirectory=/home/cyril/IntelShareAI
 ExecStart=/home/cyril/IntelShareAI/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Restart=always
