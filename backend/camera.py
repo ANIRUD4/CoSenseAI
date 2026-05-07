@@ -38,6 +38,9 @@ class CameraStream:
 
             success, image = self.video.read()
             if success:
+                # Rotate 90 degrees counter-clockwise to align with case
+                image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                
                 # Encode as JPEG
                 ret, jpeg = cv2.imencode('.jpg', image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
                 if ret:
