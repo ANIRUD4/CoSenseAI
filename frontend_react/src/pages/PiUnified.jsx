@@ -392,60 +392,64 @@ const PiUnified = () => {
             </div>
 
             {/* ── Bottom control strip ─────────────────────────────── */}
-            <div className="bg-gray-900 border-t border-gray-800 px-3 pt-3 pb-4 shrink-0">
+            <div className="bg-gray-900 border-t border-gray-800 px-2 py-1.5 shrink-0">
                 {mode === 'learn' ? (
-                    <div className="space-y-2">
-                        <div className="flex gap-2">
-                            <input id="pi-label" type="text" value={label} onChange={e => setLabel(e.target.value)}
-                                placeholder="Object label (required)…"
-                                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500 font-medium" />
-                            <button onClick={() => startListening('label')}
-                                className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all shrink-0 ${isListening === 'label' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
-                                <Mic className="w-5 h-5" />
-                            </button>
+                    /* ── Compact landscape layout: inputs left | shutter right ── */
+                    <div className="flex gap-2 items-stretch">
+                        {/* Left: two inputs stacked */}
+                        <div className="flex-1 flex flex-col gap-1 min-w-0">
+                            {/* Label row */}
+                            <div className="flex gap-1">
+                                <input
+                                    id="pi-label" type="text" value={label}
+                                    onChange={e => setLabel(e.target.value)}
+                                    placeholder="Label (required)…"
+                                    className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 font-medium"
+                                />
+                                <button onClick={() => startListening('label')}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'label' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
+                                    <Mic className="w-4 h-4" />
+                                </button>
+                            </div>
+                            {/* Action row */}
+                            <div className="flex gap-1">
+                                <input
+                                    type="text" value={action}
+                                    onChange={e => setAction(e.target.value)}
+                                    placeholder="Action (optional)…"
+                                    className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 font-medium"
+                                />
+                                <button onClick={() => startListening('action')}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all ${isListening === 'action' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
+                                    <Mic className="w-4 h-4" />
+                                </button>
+                            </div>
+                            {/* Progress bar — only when captures > 0 */}
+                            {learnCount > 0 && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-300 ${learnCount >= RECOMMENDED_CAPTURES ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                            style={{ width: `${Math.min(100, (learnCount / RECOMMENDED_CAPTURES) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <span className={`text-[9px] font-black shrink-0 ${learnCount >= RECOMMENDED_CAPTURES ? 'text-emerald-400' : 'text-blue-300'}`}>
+                                        {learnCount >= RECOMMENDED_CAPTURES ? `✓ ${learnCount}` : `${learnCount}/${RECOMMENDED_CAPTURES}`}
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex gap-2">
-                            <input type="text" value={action} onChange={e => setAction(e.target.value)}
-                                placeholder="Action (e.g. Refill the bottle)…"
-                                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500 font-medium" />
-                            <button onClick={() => startListening('action')}
-                                className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all shrink-0 ${isListening === 'action' ? 'bg-red-600 animate-pulse' : 'bg-gray-700'}`}>
-                                <Mic className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {/* White circle capture button */}
-                        <button onClick={triggerLearnCapture} disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
-                            <Circle className="w-5 h-5 text-gray-900 fill-gray-900" />
-                            <span className="text-gray-900 font-black text-sm uppercase tracking-widest">
-                                {loading ? 'Saving…' : `Capture${learnCount > 0 ? ` (${learnCount})` : ''}`}
+
+                        {/* Right: shutter button */}
+                        <button
+                            onClick={triggerLearnCapture} disabled={loading}
+                            className="w-16 flex flex-col items-center justify-center gap-0.5 rounded-xl bg-white active:scale-95 transition-transform disabled:opacity-40 shadow-lg shrink-0"
+                        >
+                            <Circle className="w-6 h-6 text-gray-900 fill-gray-900" />
+                            <span className="text-gray-900 font-black text-[8px] uppercase tracking-widest leading-none">
+                                {loading ? 'Wait' : `SNAP${learnCount > 0 ? ` ${learnCount}` : ''}`}
                             </span>
                         </button>
-                        {/* Capture progress */}
-                        {learnCount > 0 && (
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                                    <span className={learnCount >= RECOMMENDED_CAPTURES ? 'text-emerald-400' : 'text-blue-300'}>
-                                        {learnCount >= RECOMMENDED_CAPTURES
-                                            ? `✓ Ready — ${learnCount} captures stored!`
-                                            : `${learnCount} / ${RECOMMENDED_CAPTURES} captures`}
-                                    </span>
-                                    {learnCount < RECOMMENDED_CAPTURES && (
-                                        <span className="text-gray-500">
-                                            {RECOMMENDED_CAPTURES - learnCount} more needed
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-300 ${
-                                            learnCount >= RECOMMENDED_CAPTURES ? 'bg-emerald-500' : 'bg-blue-500'
-                                        }`}
-                                        style={{ width: `${Math.min(100, (learnCount / RECOMMENDED_CAPTURES) * 100)}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <div className="flex gap-2">
