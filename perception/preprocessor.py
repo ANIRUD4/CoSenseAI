@@ -360,8 +360,15 @@ class Preprocessor:
                 roi_mode = "center_fallback" if focus_hint else "focus"
                 
                 if not focus_hint and bbox_coords:
-                    # Initialize KCF tracker for subsequent frames
-                    self.tracker = cv2.TrackerKCF_create()
+                    # Initialize tracker for subsequent frames
+                    if hasattr(cv2, 'TrackerKCF_create'):
+                        self.tracker = cv2.TrackerKCF_create()
+                    elif hasattr(cv2, 'legacy') and hasattr(cv2.legacy, 'TrackerKCF_create'):
+                        self.tracker = cv2.legacy.TrackerKCF_create()
+                    else:
+                        # Fallback to MIL if KCF is completely unavailable
+                        self.tracker = cv2.TrackerMIL_create()
+                        
                     self.tracker.init(frame, bbox_coords)
                     self.frames_since_last_focus = 0
                     roi_mode = "focus_init_tracking"
