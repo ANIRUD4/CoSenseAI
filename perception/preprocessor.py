@@ -361,13 +361,18 @@ class Preprocessor:
                 
                 if not focus_hint and bbox_coords:
                     # Initialize tracker for subsequent frames
-                    if hasattr(cv2, 'TrackerKCF_create'):
+                    print("DEBUG: Initializing tracker with new try-except fallback logic...")
+                    try:
                         self.tracker = cv2.TrackerKCF_create()
-                    elif hasattr(cv2, 'legacy') and hasattr(cv2.legacy, 'TrackerKCF_create'):
-                        self.tracker = cv2.legacy.TrackerKCF_create()
-                    else:
-                        # Fallback to MIL if KCF is completely unavailable
-                        self.tracker = cv2.TrackerMIL_create()
+                        print("DEBUG: Successfully created TrackerKCF")
+                    except AttributeError:
+                        print("DEBUG: TrackerKCF not in cv2, trying cv2.legacy...")
+                        try:
+                            self.tracker = cv2.legacy.TrackerKCF_create()
+                            print("DEBUG: Successfully created legacy.TrackerKCF")
+                        except AttributeError:
+                            print("DEBUG: legacy.TrackerKCF failed, falling back to MIL...")
+                            self.tracker = cv2.TrackerMIL_create()
                         
                     self.tracker.init(frame, bbox_coords)
                     self.frames_since_last_focus = 0
