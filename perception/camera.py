@@ -45,8 +45,8 @@ class CameraStream:
         while self._running:
             ret, frame = self.cap.read()
             if ret:
-                # Rotate 90 degrees clockwise to match hardware tilt
-                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                # Rotate 90 degrees counter-clockwise to align with GUI
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 with self._lock:
                     self._frame = frame
             time.sleep(0.01)  # reduce CPU usage
